@@ -15,6 +15,15 @@ fi
 export HOMEBREW_NO_AUTO_UPDATE=1
 
 ##########################################################
+# 🕸️ Node Version Manager
+##########################################################
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+
+##########################################################
 # ⚙️ Zsh Options and Completion Setup
 # (Generated via compinstall + manual extensions)
 ##########################################################
@@ -117,7 +126,7 @@ extract() {
 
 alias ...="cd ../.."
 alias ..="cd .."
-alias cat="bat"                                  # Better cat
+#alias cat="bat"                                  # Better cat
 alias cfv="nvim ~/.config/nvim/init.vim"         # Edit init.vim
 alias cfvp="nvim ~/.config/nvim/vim-plug/plugins.vim"  # Edit vim-plug plugins
 alias cfz="nvim ~/.zshrc"                        # Edit this file

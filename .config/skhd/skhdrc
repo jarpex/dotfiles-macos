@@ -47,10 +47,10 @@ alt - play : open -a "Music"
 alt - v : code
 
 # Web browser
-alt - w : open -a "Firefox"
+alt - w : open -a "Safari"
 
 # FoXray
-alt - x : open -a "FoXray"
+alt - x : shortcuts run "VPN"
 
 # ChatGPT
 alt - y : open -a "ChatGPT"
