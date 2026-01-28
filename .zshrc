@@ -14,6 +14,11 @@ fi
 # Disable automatic update to speed up `brew` commands
 export HOMEBREW_NO_AUTO_UPDATE=1
 
+# Add user-local binaries to PATH so ~/.local/bin/scripts are found
+if [ -d "$HOME/.local/bin" ]; then
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+
 ##########################################################
 # 🕸️ Node Version Manager
 ##########################################################
