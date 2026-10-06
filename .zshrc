@@ -137,9 +137,29 @@ alias cfvp="nvim ~/.config/nvim/vim-plug/plugins.vim"  # Edit vim-plug plugins
 alias cfz="nvim ~/.zshrc"                        # Edit this file
 alias dcd="iconv -f WINDOWS-1251 -t UTF-8 -o"    # Convert encoding
 alias du="dust"                                  # Better disk usage
-alias find="fd"                                  # Better find
-alias grep="rg"                                  # Better grep with ripgrep
+#alias find="fd"                                  # Better find
+#alias grep="rg"                                  # Better grep with ripgrep
 alias ls="eza -la"                               # Better ls with full details
 alias mp3="yt-dlp -x --audio-format mp3"         # Download audio
 alias rep="cd ~/Documents/Repos/ && eza -la"     # Go to repos dir and list
 alias v="nvim"                                   # Short nvim
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:$HOME/.lmstudio/bin"
+# End of LM Studio CLI section
+
+export PATH="$PATH:$HOME/Library/Python/3.9/bin"
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+export GEM_HOME="$HOME/.gem"
+export PATH="$GEM_HOME/bin:$PATH"
+export PATH="$HOME/.hermes/bin:$PATH"
+
+# bun completions
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"

@@ -11,7 +11,7 @@ alt - d : open -a "Microsoft To Do"
 alt - e : open -a "Finder"
 
 # Google Chrome
-alt - g : open -a "Google Chrome"
+alt - g : open -a "Gemini"
 
 # Habit
 alt - h : open -a "Habit"
