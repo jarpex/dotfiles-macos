@@ -1,0 +1,115 @@
+# Place a copy of this config to ~/.aerospace.toml
+# Man pages https://nikitabobko.github.io/AeroSpace/guide#configuring-aerospace
+
+config-version = 2
+
+after-startup-command = []
+start-at-login = true
+# Automatically reload the config when saved
+auto-reload-config = true
+
+# Normalization settings
+enable-normalization-flatten-containers = true
+enable-normalization-opposite-orientation-for-nested-containers = true
+
+# Accordion is disabled by removing hotkeys and setting padding to 0
+accordion-padding = 0
+default-root-container-layout = 'tiles'
+default-root-container-orientation = 'auto'
+
+on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+automatically-unhide-macos-hidden-apps = false
+
+# Keep Kanji workspaces alive
+persistent-workspaces = ["一", "二", "三", "四", "五", "六", "七", "八", "九"]
+
+on-mode-changed = []
+focus-follows-mouse.enabled = false
+key-mapping.preset = 'qwerty'
+
+# Gaps - add left padding for SketchyBar
+gaps.inner.horizontal = 0
+gaps.inner.vertical =   0
+gaps.outer.left =       0
+gaps.outer.bottom =     0
+gaps.outer.top =        0
+gaps.outer.right =      0
+
+[mode.main.binding]
+    # Focus (using ctrl+alt+hjkl to avoid breaking macOS word navigation)
+    ctrl-alt-h = 'focus left'
+    ctrl-alt-j = 'focus down'
+    ctrl-alt-k = 'focus up'
+    ctrl-alt-l = 'focus right'
+
+    # Move windows (option + shift + hjkl)
+    alt-shift-h = 'move left'
+    alt-shift-j = 'move down'
+    alt-shift-k = 'move up'
+    alt-shift-l = 'move right'
+
+    # Resize windows (using hyper-like combo to avoid conflicts)
+    ctrl-alt-shift-h = 'resize width -50'
+    ctrl-alt-shift-l = 'resize width +50'
+    ctrl-alt-shift-k = 'resize height +50'
+    ctrl-alt-shift-j = 'resize height -50'
+
+    # Switch to workspaces (option + 1-9)
+    alt-1 = 'workspace 一'
+    alt-2 = 'workspace 二'
+    alt-3 = 'workspace 三'
+    alt-4 = 'workspace 四'
+    alt-5 = 'workspace 五'
+    alt-6 = 'workspace 六'
+    alt-7 = 'workspace 七'
+    alt-8 = 'workspace 八'
+    alt-9 = 'workspace 九'
+
+    # Move nodes to workspaces (option + shift + 1-9)
+    alt-shift-1 = 'move-node-to-workspace 一'
+    alt-shift-2 = 'move-node-to-workspace 二'
+    alt-shift-3 = 'move-node-to-workspace 三'
+    alt-shift-4 = 'move-node-to-workspace 四'
+    alt-shift-5 = 'move-node-to-workspace 五'
+    alt-shift-6 = 'move-node-to-workspace 六'
+    alt-shift-7 = 'move-node-to-workspace 七'
+    alt-shift-8 = 'move-node-to-workspace 八'
+    alt-shift-9 = 'move-node-to-workspace 九'
+
+    # Back and forth, and move workspace to monitor
+    alt-tab = 'workspace-back-and-forth'
+    alt-shift-tab = 'move-workspace-to-monitor --wrap-around next'
+
+    # Service mode
+    alt-shift-semicolon = 'mode service'
+
+# Service mode bindings
+[mode.service.binding]
+    esc = ['reload-config', 'mode main']
+    r = ['flatten-workspace-tree', 'mode main']
+    f = ['layout floating tiling', 'mode main']
+    backspace = ['close-all-windows-but-current', 'mode main']
+
+    alt-shift-h = ['join-with left', 'mode main']
+    alt-shift-j = ['join-with down', 'mode main']
+    alt-shift-k = ['join-with up', 'mode main']
+    alt-shift-l = ['join-with right', 'mode main']
+
+# ===== Auto-assign apps to workspaces =====
+# Check id with 
+# osascript -e 'id of app "Telegram"'
+# shortcode for workspaces
+# "一", "二", "三", "四", "五", "六", "七", "八", "九"
+
+# Telegram always opens on workspace 9
+[[on-window-detected]]
+    if.app-id = 'ru.keepcoder.Telegram'
+    run = 'move-node-to-workspace 九'
+# Zen browser
+[[on-window-detected]]
+    if.app-id = 'app.zen-browser.zen'
+    run = 'move-node-to-workspace 二'
+# Safari browser
+[[on-window-detected]]
+    if.app-id = 'com.apple.Safari'
+    run = 'move-node-to-workspace 二'
