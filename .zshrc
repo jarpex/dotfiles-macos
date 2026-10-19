@@ -139,7 +139,7 @@ alias dcd="iconv -f WINDOWS-1251 -t UTF-8 -o"    # Convert encoding
 alias du="dust"                                  # Better disk usage
 #alias find="fd"                                  # Better find
 #alias grep="rg"                                  # Better grep with ripgrep
-alias ls="eza -la"                               # Better ls with full details
+alias ls="eza -la --group-directories-first"                               # Better ls with full details
 alias mp3="yt-dlp -x --audio-format mp3"         # Download audio
 alias rep="cd ~/Documents/Repos/ && eza -la"     # Go to repos dir and list
 alias v="nvim"                                   # Short nvim
@@ -163,3 +163,13 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+
+# Autorun
+# tmux
+if [ -z "$TMUX" ] && [ -n "$PS1" ]; then
+  tmux attach-session -t main 2>/dev/null || tmux new-session -s main
+fi
+
+export NARGO_HOME="/Users/asya/.nargo"
+
+export PATH="$PATH:$NARGO_HOME/bin"

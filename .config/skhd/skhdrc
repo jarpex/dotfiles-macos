@@ -47,7 +47,7 @@ alt - play : open -a "Music"
 alt - v : code
 
 # Web browser
-alt - w : open -a "Safari"
+alt - w : open -a "Zen"
 
 # FoXray
 alt - x : shortcuts run "VPN"

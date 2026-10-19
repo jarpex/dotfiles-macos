@@ -5,6 +5,7 @@ font-size = 18
 
 # Theme and colors
 theme = vesper
+macos-titlebar-style = hidden
 
 # Terminal behavior
 term = xterm-256color
