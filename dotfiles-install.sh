@@ -89,6 +89,7 @@ link_file ".aerospace.toml" ".aerospace.toml"
 # zsh config
 link_file ".config/zsh" ".config/zsh"
 link_file ".zshrc" ".zshrc"
+link_file ".tmux.conf" ".tmux.conf"
 
 # install sync script into ~/.local/bin (copy, not symlink, for launchd compatibility)
 install_script "bin/sync_obsidian.sh" ".local/bin/sync_obsidian"
