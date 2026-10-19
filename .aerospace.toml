@@ -3,7 +3,9 @@
 
 config-version = 2
 
-after-startup-command = []
+after-startup-command = [
+    'exec-and-forget bash -c "for ws in 1 2 3 4 5 6 7 8 9; do aerospace workspace \"$ws\"; sleep 0.1; done; aerospace workspace 1"'
+]
 start-at-login = true
 # Automatically reload the config when saved
 auto-reload-config = true
@@ -20,8 +22,8 @@ default-root-container-orientation = 'auto'
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 automatically-unhide-macos-hidden-apps = false
 
-# Keep Kanji workspaces alive
-persistent-workspaces = ["一", "二", "三", "四", "五", "六", "七", "八", "九"]
+# Keep workspaces alive
+persistent-workspaces = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 on-mode-changed = []
 focus-follows-mouse.enabled = false
@@ -30,10 +32,31 @@ key-mapping.preset = 'qwerty'
 # Gaps - add left padding for SketchyBar
 gaps.inner.horizontal = 0
 gaps.inner.vertical =   0
-gaps.outer.left =       0
-gaps.outer.bottom =     0
-gaps.outer.top =        0
-gaps.outer.right =      0
+gaps.outer.left =       10
+gaps.outer.bottom =     10
+gaps.outer.top =        10
+gaps.outer.right =      10
+
+# ===== Auto-assign apps to workspaces (new inline syntax) =====
+# Check id with: osascript -e 'id of app "Telegram"'
+# Workspaces: "1", "2", "3", "4", "5", "6", "7", "8", "9"
+
+on-window-detected = [
+    # Telegram -> 9
+    { if = 'test %{app-bundle-id} = ru.keepcoder.Telegram', run = 'move-node-to-workspace 9' },
+
+    # Zen Browser & Safari -> 2
+    { if = 'test %{app-bundle-id} = app.zen-browser.zen || test %{app-bundle-id} = com.apple.Safari', run = 'move-node-to-workspace 2' },
+
+    # Obsidian Settings -> floating
+    { if = "test %{app-bundle-id} = md.obsidian && test %{window-title} ~= 'Settings|Community themes'", run = 'layout floating' },
+
+    # Activity Monitor -> floating
+    { if = 'test %{app-bundle-id} = com.apple.ActivityMonitor', run = 'layout floating' },
+
+    # Catch-all: move unmatched windows to first empty persistent workspace on focused monitor
+    { if = 'true', check-further-callbacks = false, run = "exec-and-forget bash -c 'first_empty=$(aerospace list-workspaces --monitor focused --empty --format \"%{workspace}\" | head -1); [ -n \"$first_empty\" ] && aerospace move-node-to-workspace --focus-follows-window --window-id \"$AEROSPACE_WINDOW_ID\" \"$first_empty\"'" },
+]
 
 [mode.main.binding]
     # Focus (using ctrl+alt+hjkl to avoid breaking macOS word navigation)
@@ -55,26 +78,26 @@ gaps.outer.right =      0
     ctrl-alt-shift-j = 'resize height -50'
 
     # Switch to workspaces (option + 1-9)
-    alt-1 = 'workspace 一'
-    alt-2 = 'workspace 二'
-    alt-3 = 'workspace 三'
-    alt-4 = 'workspace 四'
-    alt-5 = 'workspace 五'
-    alt-6 = 'workspace 六'
-    alt-7 = 'workspace 七'
-    alt-8 = 'workspace 八'
-    alt-9 = 'workspace 九'
+    alt-1 = 'workspace 1'
+    alt-2 = 'workspace 2'
+    alt-3 = 'workspace 3'
+    alt-4 = 'workspace 4'
+    alt-5 = 'workspace 5'
+    alt-6 = 'workspace 6'
+    alt-7 = 'workspace 7'
+    alt-8 = 'workspace 8'
+    alt-9 = 'workspace 9'
 
     # Move nodes to workspaces (option + shift + 1-9)
-    alt-shift-1 = 'move-node-to-workspace 一'
-    alt-shift-2 = 'move-node-to-workspace 二'
-    alt-shift-3 = 'move-node-to-workspace 三'
-    alt-shift-4 = 'move-node-to-workspace 四'
-    alt-shift-5 = 'move-node-to-workspace 五'
-    alt-shift-6 = 'move-node-to-workspace 六'
-    alt-shift-7 = 'move-node-to-workspace 七'
-    alt-shift-8 = 'move-node-to-workspace 八'
-    alt-shift-9 = 'move-node-to-workspace 九'
+    alt-shift-1 = 'move-node-to-workspace 1'
+    alt-shift-2 = 'move-node-to-workspace 2'
+    alt-shift-3 = 'move-node-to-workspace 3'
+    alt-shift-4 = 'move-node-to-workspace 4'
+    alt-shift-5 = 'move-node-to-workspace 5'
+    alt-shift-6 = 'move-node-to-workspace 6'
+    alt-shift-7 = 'move-node-to-workspace 7'
+    alt-shift-8 = 'move-node-to-workspace 8'
+    alt-shift-9 = 'move-node-to-workspace 9'
 
     # Back and forth, and move workspace to monitor
     alt-tab = 'workspace-back-and-forth'
@@ -94,22 +117,3 @@ gaps.outer.right =      0
     alt-shift-j = ['join-with down', 'mode main']
     alt-shift-k = ['join-with up', 'mode main']
     alt-shift-l = ['join-with right', 'mode main']
-
-# ===== Auto-assign apps to workspaces =====
-# Check id with 
-# osascript -e 'id of app "Telegram"'
-# shortcode for workspaces
-# "一", "二", "三", "四", "五", "六", "七", "八", "九"
-
-# Telegram always opens on workspace 9
-[[on-window-detected]]
-    if.app-id = 'ru.keepcoder.Telegram'
-    run = 'move-node-to-workspace 九'
-# Zen browser
-[[on-window-detected]]
-    if.app-id = 'app.zen-browser.zen'
-    run = 'move-node-to-workspace 二'
-# Safari browser
-[[on-window-detected]]
-    if.app-id = 'com.apple.Safari'
-    run = 'move-node-to-workspace 二'
