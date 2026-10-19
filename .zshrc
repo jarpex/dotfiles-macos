@@ -170,6 +170,6 @@ if [ -z "$TMUX" ] && [ -n "$PS1" ]; then
   tmux attach-session -t main 2>/dev/null || tmux new-session -s main
 fi
 
-export NARGO_HOME="/Users/asya/.nargo"
+export NARGO_HOME="$HOME/.nargo"
 
 export PATH="$PATH:$NARGO_HOME/bin"
