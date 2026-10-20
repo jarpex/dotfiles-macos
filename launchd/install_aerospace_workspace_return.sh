@@ -45,13 +45,15 @@ if [[ -z "$LABEL" ]]; then
   LABEL="$(basename "$TARGET" .plist)"
 fi
 
-# If agent is already loaded, unload it first
+# bootout, not unload: the agent has KeepAlive, and unload leaves it
+# registered in some cases. bootout removes the job for good.
 if launchctl list | grep -Fq "$LABEL"; then
   echo "Unloading existing launch agent: $LABEL"
-  launchctl unload "$TARGET" || true
+  launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || launchctl unload "$TARGET" || true
+  sleep 1
 fi
 
 echo "Loading launch agent: $TARGET"
-launchctl load "$TARGET"
+launchctl bootstrap "gui/$(id -u)" "$TARGET" 2>/dev/null || launchctl load "$TARGET"
 
 echo "Done."
