@@ -25,15 +25,15 @@ How it works
 Why it barely touches AeroSpace
 -------------------------------
 Every command to AeroSpace's socket makes AeroSpace lay out all its
-workspaces, so 20 commands per second cost it about 10% CPU. The helper
-therefore reads the window list rarely: once when a window appears, and every
-few seconds as a safety net. Everything else is driven by the event stream.
+workspaces, which costs about 80 ms of CPU. The helper therefore reads the
+window list rarely: once when a window appears, and every 15 seconds as a
+safety net. Everything else is driven by the event stream.
 
 Protocol
 --------
-Talks AeroSpace's documented Unix-socket protocol directly (protocol version
-1) instead of shelling out to the `aerospace` CLI, so a query costs a
-socket round-trip rather than a process spawn.
+Talks AeroSpace's Unix-socket protocol directly (version 1) instead of
+shelling out to the `aerospace` CLI, so a query costs a socket round-trip
+rather than a process spawn.
 
 Environment
 -----------
@@ -296,13 +296,9 @@ class Tracker(object):
         self.origin = {}
         # window id -> last workspace the window was seen on
         self.location = {}
-        # window id -> time of detection
         self.detected_at = {}
-        # window id -> True when the window was moved automatically
         self.auto_moved = {}
-        # window id -> bundle id of the app that owns the window
         self.bundle = {}
-        # window id -> pid of the app that owns the window
         self.pid = {}
         # window ids that have already been rescued back to their origin
         self.rescued = set()
@@ -313,7 +309,6 @@ class Tracker(object):
         self.move_origin = {}
         # window id -> workspace the automatic move put it on
         self.move_location = {}
-        # the workspace that currently has focus
         self.focused_workspace = None
         # workspace -> (window id, origin workspace) for automatically moved
         # windows. This is the map that makes the bounce correction possible
@@ -325,10 +320,7 @@ class Tracker(object):
         # to be gone. The bounce correction prefers this map, because it knows
         # for certain the window died there.
         self.dead_auto_moves = {}
-        # (origin workspace, workspace the closed window lived on, deadline)
         self.pending_return = None
-        # Called when the set of interesting windows changes, so the watcher
-        # can refresh its watch set.
         self.on_change = None
 
     def _notify(self):
@@ -381,7 +373,7 @@ class Tracker(object):
         self._notify()
 
     def window_focused(self, window_id, workspace):
-        """The window gained focus; its workspace may have changed."""
+        """Records that a window gained focus, possibly on another desk."""
         if window_id is None or workspace is None:
             return
         with self.lock:
@@ -392,7 +384,7 @@ class Tracker(object):
         self._notify()
 
     def workspace_focused(self, workspace):
-        """The focused workspace changed."""
+        """Records the focused workspace."""
         with self.lock:
             self.focused_workspace = workspace
 
@@ -450,35 +442,27 @@ class Tracker(object):
                 automatic = self.auto_moved.pop(window_id, False)
                 rescued = window_id in self.rescued
                 failed = window_id in self.rescue_failed
-                # Neither flag is ever cleared here: a rescued window has
-                # already been moved home, and a failed one has already been
-                # handed to the bounce correction. Offering either of them
-                # again would only produce a duplicate move of a window that
-                # is already gone.
+                # Neither flag is cleared here: both windows are already
+                # gone, so offering them again would move a window twice.
                 if rescued and not failed:
-                    # We moved it home before AeroSpace collected it, so
-                    # there is nothing to return to - and no bounce is
-                    # coming, because the window died on its origin desk.
+                    # Moved home before collection, so it died on its origin
+                    # desk and no bounce is coming.
                     log("window %s closed (rescued to its origin) - no bounce"
                         % window_id)
                 elif automatic and location and location != origin:
                     if self.auto_moved_to.get(location, (None,))[0] != window_id:
-                        # The bounce was already corrected from the event
-                        # stream, so this desk is free again.
+                        # The bounce was already corrected, so the desk is free.
                         log("window %s closed (bounce already handled) - no return"
                             % window_id)
                     else:
                         now = time.monotonic()
                         self.pending_return = (origin, location, now + RETURN_DEADLINE, now)
-                        # Remember the desk the window died on, so the bounce
-                        # that is about to happen can be undone from the event
-                        # alone - without waiting for the next reconcile.
+                        # Remember the desk, so the bounce can be undone from
+                        # the event alone.
                         self.dead_auto_moves[location] = (origin, now + DEAD_ENTRY_TTL)
                         if failed:
-                            # We tried to move it home in time, but the rescue
-                            # failed - the window was collected first. The
-                            # bounce is still going to happen, so it must be
-                            # undone.
+                            # The window was collected before the rescue
+                            # landed, so the bounce still has to be undone.
                             log("window %s closed (rescue failed) - bounce to %s expected"
                                 % (window_id, location))
                         else:
@@ -487,9 +471,8 @@ class Tracker(object):
                 else:
                     log("window %s closed (no automatic move) - no return" % window_id)
                 if not automatic:
-                    # Only a window that was not auto-moved needs its entry
-                    # removed. An auto-moved window keeps its entry until the
-                    # bounce is undone, so the bounce can be recognised.
+                    # An auto-moved window keeps its entry until the bounce
+                    # is undone, so the bounce can be recognised.
                     self._forget_auto_move(window_id)
                 if window_id not in self.rescued and window_id not in self.rescue_failed:
                     self.move_origin.pop(window_id, None)
@@ -535,20 +518,15 @@ class Tracker(object):
             dead.append((window_id, origin))
         return dead
 
-    def has_live_windows(self):
-        """True if there is at least one window to keep track of."""
-        with self.lock:
-            return bool(self.origin)
-
     def mark_rescued(self, window_id):
         """Records that the window was moved back to its origin in time."""
         with self.lock:
             self.rescued.add(window_id)
             self.rescue_failed.discard(window_id)
-            # The entry in auto_moved_to stays until the window is seen gone.
-            # It is what tells a later bounce that the window died on that
-            # desk - and it must survive until then, because a failing rescue
-            # means the bounce may already be on its way.
+            # The entry in auto_moved_to stays until the window is seen gone:
+            # it is what tells a later bounce that the window died on that
+            # desk, and a failing rescue means the bounce is already on its
+            # way.
             trim(self.rescued)
         self._notify()
 
@@ -566,11 +544,6 @@ class Tracker(object):
             trim(self.rescue_failed)
         self._notify()
 
-    def pid_of(self, window_id):
-        """The pid of the app that owns the window, if known."""
-        with self.lock:
-            return self.pid.get(window_id)
-
     def evaluate_return(self, focused_workspace):
         """Returns the workspace to switch to, or None."""
         with self.lock:
@@ -578,8 +551,7 @@ class Tracker(object):
                 return None
             origin, moved_to, deadline, _created = self.pending_return
             if focused_workspace == moved_to:
-                # We are on the empty desk the closed window lived on - the
-                # bounce. Go home.
+                # Focus is on the empty desk the closed window lived on.
                 self.pending_return = None
                 self.dead_auto_moves.pop(moved_to, None)
                 self.auto_moved_to.pop(moved_to, None)
@@ -624,12 +596,10 @@ class Tracker(object):
             if origin is None or origin == workspace:
                 return None
             if window_id in self.rescued and window_id not in self.rescue_failed:
-                # The window was moved home before AeroSpace collected it, so
-                # it died on its origin desk and no bounce is coming.
+                # Moved home before collection, so no bounce is coming.
                 return None
             if dead is not None and now > dead[1]:
-                # The window died long ago. Focus landing on that desk now is
-                # the user moving on purpose, not a bounce.
+                # The window died long ago: the user moved on purpose.
                 self.auto_moved_to.pop(workspace, None)
                 return None
             self.auto_moved_to.pop(workspace, None)
@@ -689,8 +659,8 @@ def rescue_window(tracker, commands, window_id, origin):
             % (window_id, (time.time() - sent) * 1000))
         return True
     except SocketError as err:
-        # The window was collected before we got to it - too late to rescue
-        # it, so the bounce correction will have to handle it.
+        # Collected before we got to it: the bounce correction has to
+        # handle it.
         tracker.mark_rescue_failed(window_id)
         log("rescue of window %s failed after %d ms: %s"
             % (window_id, (time.time() - sent) * 1000, err))
@@ -718,8 +688,7 @@ def watcher_thread(tracker, stop):
     watcher = ExitWatcher()
     tracker.on_change = watcher.notify
     while not stop.is_set():
-        # Keep the watcher in step with the tracker: watch the apps that
-        # own auto-moved windows, and stop watching the rest.
+        # Keep the watch set in step with the tracker.
         tracked = tracker.tracked_pids()
         watched = set()
         for _window_id, pid, _origin, _location in tracked:
@@ -798,26 +767,21 @@ def subscriber_thread(tracker, wake):
                     tracker.window_detected(event.get("windowId"),
                                             event.get("workspace"),
                                             event.get("appBundleId"))
-                    # A new window needs its pid, which only the window list
-                    # knows. Ask for a reconcile right away.
+                    # Only the window list knows the new window's pid.
                     wake.set()
                 elif kind == "focus-changed":
                     tracker.window_focused(event.get("windowId"), event.get("workspace"))
                     if event.get("windowId") is not None:
-                        # macOS moved focus to a real window. If it moved
-                        # away from an automatically moved window, that
-                        # window is dying. The process watcher does the
-                        # actual rescue - it watches the process directly,
-                        # which is more reliable than asking AeroSpace for
-                        # its app list.
+                        # Focus moved to a real window. If it moved away
+                        # from an automatically moved window, that window is
+                        # dying, but the process watcher does the rescue.
                         continue
                     # Focus landed on an empty workspace: the bounce.
                     workspace = event.get("workspace")
                     if workspace is None:
                         continue
-                    # Decide from the event alone - no round trip to
-                    # AeroSpace first, because that round trip is what would
-                    # make the empty desk visible.
+                    # Decide from the event alone: a round trip to AeroSpace
+                    # would make the empty desk visible.
                     target = tracker.bounce_target(workspace)
                     if target is None:
                         continue
@@ -849,13 +813,13 @@ def reconcile_thread(tracker, wake, stop):
     """
     commands = None
     while not stop.is_set():
-        # Wait for a new window, or for the safety-net interval to pass.
+        # Wait for a new window or for the safety-net interval.
         wake.wait(RECONCILE_INTERVAL)
         if not wake.is_set():
             pass
         else:
             # The auto-assign callback moves the window a moment after it
-            # appears. Waiting for that keeps the read from missing the move.
+            # appears, so wait for that before reading.
             time.sleep(SETTLE_DELAY)
         wake.clear()
         if stop.is_set():
@@ -867,9 +831,7 @@ def reconcile_thread(tracker, wake, stop):
                 "list-windows", "--all", "--format",
                 "%{window-id} %{app-bundle-id} %{app-pid} %{workspace}"))
             tracker.sync_windows(live)
-            # Safety net for the bounce: if the event thread missed it (a
-            # dropped event stream, a reconnect), the reconcile still
-            # notices that focus sits on the empty desk and returns home.
+            # Safety net for a bounce the event thread missed.
             focused = tracker.focused_workspace_now()
             if focused is not None:
                 target = tracker.evaluate_return(focused)
@@ -919,8 +881,7 @@ def main():
     )
     subscriber.start()
 
-    # The process watcher is what rescues a dying window before AeroSpace
-    # collects it. It runs separately so that its commands are not queued
+    # The process watcher runs separately so its commands are not queued
     # behind the reconcile loop's.
     process_watcher = threading.Thread(
         target=watcher_thread,
