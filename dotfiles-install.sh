@@ -89,7 +89,15 @@ link_file ".aerospace.toml" ".aerospace.toml"
 # zsh config
 link_file ".config/zsh" ".config/zsh"
 link_file ".zshrc" ".zshrc"
+link_file ".zshenv" ".zshenv"
 link_file ".tmux.conf" ".tmux.conf"
 
 # install sync script into ~/.local/bin (copy, not symlink, for launchd compatibility)
 install_script "bin/sync_obsidian.sh" ".local/bin/sync_obsidian"
+# install aerolaunch into ~/.local/bin
+link_file "bin/aerolaunch" ".local/bin/aerolaunch"
+# install the workspace-return helper as a real copy
+install_script "bin/aerospace-workspace-return" ".local/bin/aerospace-workspace-return"
+# load the launch agents
+bash "$DOTFILES_DIR/launchd/install_obsidian_sync.sh" || true
+bash "$DOTFILES_DIR/launchd/install_aerospace_workspace_return.sh" || true

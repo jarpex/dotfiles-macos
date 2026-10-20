@@ -1,65 +1,65 @@
 # Anki
-alt - a : open -a "Anki"
+alt - a : aerolaunch open -a "Anki"
 
 # Calculator
-alt - c : open -a "Calculator"
+alt - c : aerolaunch open -a "Calculator"
 
 # Microsoft To Do
-alt - d : open -a "Microsoft To Do"
+alt - d : aerolaunch open -a "Microsoft To Do"
 
 # Finder
-alt - e : open -a "Finder"
+alt - e : aerolaunch open -a "Finder"
 
 # Google Chrome
-alt - g : open -a "Gemini"
+alt - g : aerolaunch open -a "Gemini"
 
 # Habit
-alt - h : open -a "Habit"
+alt - h : aerolaunch open -a "Habit"
 
 # Journal
-alt - j : open -a "Journal"
+alt - j : aerolaunch open -a "Journal"
 
 # Calendar
-alt - l : open -a "Calendar"
+alt - l : aerolaunch open -a "Calendar"
 
 # Mail
-alt - m : open -a "Mail"
+alt - m : aerolaunch open -a "Mail"
 
 # Notes
-alt - n : open -a "Notes"
+alt - n : aerolaunch open -a "Notes"
 
 # Obsidian
-alt - o : open -a "Obsidian"
+alt - o : aerolaunch open -a "Obsidian"
 
 # Passwords
-alt - p : open -a "Passwords"
+alt - p : aerolaunch open -a "Passwords"
 
 # Structured
-alt - s : open -a "Structured"
+alt - s : aerolaunch open -a "Structured"
 
 # Telegram
-alt - t : open -a "Telegram"
+alt - t : aerolaunch open -a "Telegram"
 
 # Apple Music
-alt - play : open -a "Music"
+alt - play : aerolaunch open -a "Music"
 
 # VS Code
-alt - v : code
+alt - v : aerolaunch code
 
 # Web browser
-alt - w : open -a "Zen"
+alt - w : aerolaunch open -a "Zen"
 
 # FoXray
 alt - x : shortcuts run "VPN"
 
 # ChatGPT
-alt - y : open -a "ChatGPT"
+alt - y : aerolaunch open -a "ChatGPT"
 
 # System Settings
-alt - z : open -a "System Settings"
+alt - z : aerolaunch open -a "System Settings"
 
 # Ghostty Terminal
-alt - return : open -a "Ghostty"
+alt - return : aerolaunch open -a "Ghostty"
 
 # Activity Monitor
-ctrl + shift - escape : open -a "Activity Monitor"
+ctrl + shift - escape : aerolaunch open -a "Activity Monitor"

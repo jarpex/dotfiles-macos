@@ -1,0 +1,54 @@
+#!/bin/zsh
+# aerolaunch - Launch an app and return to the origin AeroSpace workspace when it closes.
+#
+# Usage:
+#   aerolaunch <command> [args...]
+#
+# Examples:
+#   aerolaunch open -a "Telegram"
+#   aerolaunch code .
+#   aerolaunch /Applications/Chrome.app
+#
+# The current workspace is captured before launching, so when the app exits we
+# switch back to it. This is the only reliable way to return to the origin
+# workspace: AeroSpace's on-focus-changed callback cannot query AeroSpace's
+# own state (the CLI returns nothing from inside a callback), and macOS focus
+# order on window close is not predictable, so a callback would bounce between
+# workspaces.
+#
+# How we detect that the app is gone:
+#   - `open` gets -W so it blocks until the app quits.
+#   - `code` gets -w so it blocks until the editor window closes.
+#   - Anything else: we wait for the process to exit.
+
+log() { [[ -n "$DEBUG_AEROLAUNCH" ]] && echo "[aerolaunch] $*" >> /tmp/aerolaunch.log; return 0; }
+
+local origin_ws=$(aerospace list-workspaces --focused --format "%{workspace}" 2>/dev/null)
+log "origin=$origin_ws cmd=$*"
+
+case "$1" in
+    open)
+        # `open` returns immediately unless told to wait; -W blocks until the app quits.
+        shift
+        set -- open -W "$@"
+        ;;
+    code)
+        # The VS Code CLI returns immediately; -w blocks until the window closes.
+        shift
+        set -- code -w "$@"
+        ;;
+esac
+
+"$@" &
+local pid=$!
+wait $pid
+log "child exited"
+
+# Give macOS/AeroSpace a moment to settle focus after the app died, otherwise
+# AeroSpace may pull focus back to the dead app's workspace.
+sleep 0.3
+
+if [[ -n "$origin_ws" ]]; then
+    aerospace workspace "$origin_ws"
+    log "now on $(aerospace list-workspaces --focused --format '%{workspace}')"
+fi
