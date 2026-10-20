@@ -18,7 +18,7 @@ link_file() {
 
     # If the target exists
     if [ -L "$target" ]; then
-        # If it's already the correct symlink
+        # If the symlink already points at the source
         if [ "$(readlink "$target")" = "$source" ]; then
             echo "✔ Symlink already exists: $target → $source"
             return
@@ -28,7 +28,7 @@ link_file() {
             mv "$target" "$BACKUP_DIR/"
         fi
     elif [ -e "$target" ]; then
-        # If it's a regular file or directory
+        # If the target is a regular file or directory
         echo "⚠️ File or directory exists at $target. Backing up."
         mkdir -p "$BACKUP_DIR"
         mv "$target" "$BACKUP_DIR/"
@@ -38,7 +38,7 @@ link_file() {
     ln -s "$source" "$target"
     echo "✅ Linked: $target → $source"
 
-    # If this is a script (in bin/ or ends with .sh), ensure it's executable
+    # A script in bin/ or ending in .sh must be executable
     if [[ "$rel" == bin/* || "$rel" == *.sh ]]; then
         chmod +x "$source" || true
         echo "🔧 Ensured executable: $source"
@@ -72,7 +72,7 @@ install_script() {
         fi
     fi
 
-    # Copy the script and ensure it's executable
+    # Copy the script and make it executable
     cp "$source" "$target"
     chmod 755 "$target" || true
     echo "✅ Installed script: $target → $source"

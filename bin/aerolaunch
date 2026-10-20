@@ -10,11 +10,9 @@
 #   aerolaunch /Applications/Chrome.app
 #
 # The current workspace is captured before launching, so when the app exits we
-# switch back to it. This is the only reliable way to return to the origin
-# workspace: AeroSpace's on-focus-changed callback cannot query AeroSpace's
-# own state (the CLI returns nothing from inside a callback), and macOS focus
-# order on window close is not predictable, so a callback would bounce between
-# workspaces.
+# switch back to it. A callback cannot do this: AeroSpace's CLI returns
+# nothing from inside a callback, and macOS focus order on window close is not
+# predictable, so a callback would bounce between workspaces.
 #
 # How we detect that the app is gone:
 #   - `open` gets -W so it blocks until the app quits.

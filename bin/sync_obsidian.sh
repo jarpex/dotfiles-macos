@@ -8,7 +8,7 @@ SOURCE="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents"
 DEST="/Volumes/Asya/20_Knowledge"
 # Lock
 LOCK_DIR="/tmp/sync_obsidian.lock"
-#Unison
+# Unison
 UNISON_BIN=$(which unison || echo "/opt/homebrew/bin/unison")
 
 # Flags
@@ -41,7 +41,6 @@ else
     exit 0
 fi
 
-# Ensure source exists
 if [[ ! -d "$SOURCE" ]]; then
     echo "Error: Source directory not found: $SOURCE"
     exit 1

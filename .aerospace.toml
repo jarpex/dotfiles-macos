@@ -54,7 +54,7 @@ on-window-detected = [
     # Activity Monitor -> floating
     { if = 'test %{app-bundle-id} = com.apple.ActivityMonitor', run = 'layout floating' },
 
-    # Floating apps that should stay on current workspace (Calculator, etc.)
+    # Floating apps that stay on the current workspace (Calculator, etc.)
     { if = 'test %{app-bundle-id} = com.apple.calculator', check-further-callbacks = false, run = 'layout floating' },
     { if = 'test %{app-bundle-id} = com.apple.systempreferences', check-further-callbacks = false, run = 'layout floating' },
 
