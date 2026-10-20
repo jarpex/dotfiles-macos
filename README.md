@@ -69,17 +69,22 @@ Note: `aerolaunch` returns you to the origin when the app **quits**, not when
 you close its last window. For apps that linger in the menu bar use `Cmd+Q`
 rather than `Cmd+W`.
 
-## 🔁 Obsidian iCloud → NAS sync
+## Obsidian iCloud to NAS sync
 
-This repo includes a small sync helper that mirrors an Obsidian vault from iCloud to a mounted NAS using `unison`.
+This repo includes a sync helper that mirrors an Obsidian vault from iCloud to
+a mounted NAS using `unison`.
 
 - Script: `bin/sync_obsidian.sh` (installed/copied to `~/.local/bin/sync_obsidian` by the installer)
 - Usage: run manually or via `launchd`; the script supports `--skip-power-check` (or `-s`) to bypass the AC-power check.
 - Install: run `bash dotfiles-install.sh` to copy the script into `~/.local/bin` and make it executable.
-- LaunchAgent: a plist template is provided at `launchd/com.jarpex.obsidiansync.plist` and an installer script at `launchd/install_obsidian_sync.sh` which will patch the `{{USER}}` placeholder and load the agent into `~/Library/LaunchAgents`.
+- LaunchAgent: `launchd/com.jarpex.obsidiansync.plist`, installed by
+  `launchd/install_obsidian_sync.sh`, which patches the `{{USER}}` placeholder
+  and loads the agent into `~/Library/LaunchAgents`.
 
 Notes:
 
-- `launchd` agents should run non-symlinked executables (copying the script into `~/.local/bin` avoids permission issues when the repo is stored in `~/Documents`).
-- The template uses `StartInterval` (default in the template is 3600);
-- Ensure `unison` is available in the runtime PATH for `launchd` (you can use an absolute path in the plist's `ProgramArguments` if needed).
+- `launchd` agents run non-symlinked executables. Copying the script into
+  `~/.local/bin` avoids permission issues when the repo sits in `~/Documents`.
+- The template uses `StartInterval` (3600 seconds in the template).
+- `unison` must be in the runtime PATH for `launchd`. An absolute path in the
+  plist's `ProgramArguments` also works.
