@@ -1,5 +1,5 @@
 ##########################################################
-# 🧰 Ruby via Homebrew
+# Ruby via Homebrew
 ##########################################################
 
 if [ -d "/opt/homebrew/opt/ruby/bin" ]; then
@@ -8,7 +8,7 @@ if [ -d "/opt/homebrew/opt/ruby/bin" ]; then
 fi
 
 ##########################################################
-# 🍺 Homebrew Settings
+# Homebrew Settings
 ##########################################################
 
 # Disable automatic update to speed up `brew` commands
@@ -20,7 +20,7 @@ if [ -d "$HOME/.local/bin" ]; then
 fi
 
 ##########################################################
-# 🕸️ Node Version Manager
+# Node Version Manager
 ##########################################################
 
 export NVM_DIR="$HOME/.nvm"
@@ -29,7 +29,7 @@ export NVM_DIR="$HOME/.nvm"
 
 
 ##########################################################
-# ⚙️ Zsh Options and Completion Setup
+# Zsh Options and Completion Setup
 # (Generated via compinstall + manual extensions)
 ##########################################################
 
@@ -73,7 +73,7 @@ autoload -Uz compinit
 compinit
 
 ##########################################################
-# 📜 History Configuration
+# History Configuration
 ##########################################################
 
 HISTFILE=~/.histfile
@@ -81,7 +81,7 @@ HISTSIZE=1000
 SAVEHIST=1000
 
 ##########################################################
-# 🎨 Themes and UI Styling
+# Themes and UI Styling
 ##########################################################
 
 # FZF (fuzzy finder) theme: Rose Pine
@@ -100,7 +100,7 @@ colorize_man rose-pine
 source "$(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
 ##########################################################
-# 📦 Extraction Helper Function
+# Extraction Helper Function
 ##########################################################
 
 # Usage: extract archive.tar.gz
@@ -126,7 +126,7 @@ extract() {
 }
 
 ##########################################################
-# 🧾 Aliases
+# Aliases
 ##########################################################
 
 alias ...="cd ../.."
@@ -155,10 +155,6 @@ export PATH="$HOME/.hermes/bin:$PATH"
 
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
-
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
