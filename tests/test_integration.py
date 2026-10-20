@@ -4,8 +4,8 @@ Integration test for aerospace-workspace-return.
 
 Drives the helper's real AeroSpace socket client against a fake AeroSpace
 server that speaks the same Unix-socket protocol (version 1). This exercises
-the event subscription, the polling loop and the workspace switch - the same
-code paths the live helper uses - without needing a real window manager or an
+the event subscription, the reconcile and the workspace switch - the same code
+paths the live helper uses - without needing a real window manager or an
 unlocked screen.
 
 The fake server:

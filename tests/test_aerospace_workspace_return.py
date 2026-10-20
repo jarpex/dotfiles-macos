@@ -102,11 +102,11 @@ check("ids are ints", all(isinstance(k, int) for k in parsed), "got %s" % (parse
 check("bundle, pid and workspace kept",
       parsed[24471] == ("app.zen-browser.zen", 503, "2"), "got %s" % (parsed,))
 
-print("test 8: poll sees the move BEFORE the detection event arrives")
+print("test 8: the reconcile sees the move BEFORE the detection event arrives")
 t = awr.Tracker()
-# The poll loop can observe the already-moved window before the
-# window-detected event is drained from the queue.
-t.sync_windows({700: ("app", 4242, "9")})          # poll first: window already on 9
+# The reconcile can observe the already-moved window before the
+# window-detected event arrives.
+t.sync_windows({700: ("app", 4242, "9")})          # reconcile first: window already on 9
 t.window_detected(700, "2")         # then the event arrives, saying it started on 2
 check("auto-move detected despite event ordering", t.auto_moved.get(700) is True,
       "auto_moved=%r" % t.auto_moved.get(700))
@@ -153,16 +153,16 @@ check("return scheduled", t.pending_return is not None)
 check("switch to 5 is not a bounce", t.bounce_target("5") is None)
 check("bounce to 9 still detected", t.bounce_target("9") == "2")
 
-print("test 13: the bounce is caught before the poll notices the close")
+print("test 13: the bounce is caught before the reconcile notices the close")
 # This is the fast path: the focus-changed event arrives with no window id
-# (focus landed on an empty desk) before the 120ms poll has run, so the
+# (focus landed on an empty desk) before the reconcile has run, so the
 # decision has to be made from the event alone.
 t = awr.Tracker()
 t.window_detected(1200, "2")
 t.sync_windows({1200: ("app", 4242, "2")})
-t.sync_windows({1200: ("app", 4242, "9")})          # auto-move to 9, poll noticed
-check("poll has not seen the close yet", t.pending_return is None)
-check("bounce to 9 returns 2 without waiting for the poll",
+t.sync_windows({1200: ("app", 4242, "9")})          # auto-move to 9, reconcile noticed
+check("the reconcile has not seen the close yet", t.pending_return is None)
+check("bounce to 9 returns 2 without waiting for the reconcile",
       t.bounce_target("9") == "2")
 
 print("test 14: a workspace we never auto-moved to is not a bounce")
@@ -189,7 +189,7 @@ t = awr.Tracker()
 t.window_detected(1500, "2", "ru.keepcoder.Telegram")
 t.sync_windows({1500: ("ru.keepcoder.Telegram", PID_ALIVE, "2")})
 t.sync_windows({1500: ("ru.keepcoder.Telegram", PID_ALIVE, "9")})   # auto-moved to 9
-check("the window is tracked", t.has_live_windows())
+check("the window is tracked", 1500 in t.origin)
 check("nothing to rescue while the app runs", t.dead_pids() == [],
       "got %s" % (t.dead_pids(),))
 # The app quit (its pid is gone), but the window is still in AeroSpace's tree.
@@ -257,7 +257,7 @@ check("the bounce can still be undone", t.bounce_target("9") == "2")
 
 print("test 22: kqueue reports the exit of a process")
 # The exit watcher is what makes the rescue timely: it fires the moment
-# the app's process exits, without polling.
+# the app's process exits.
 import subprocess
 watcher = awr.ExitWatcher()
 child = subprocess.Popen(["/bin/sh", "-c", "exit 0"])
