@@ -32,12 +32,25 @@ nothing.
    (kqueue's `NOTE_EXIT`, no socket round trip),
 4. moves the dying window back to its origin **before** AeroSpace collects it.
 
+If the window was collected first, the bounce is recognised from the event
+stream - focus landing on an empty workspace - and undone immediately.
+
+Every command to AeroSpace's socket makes it lay out all its workspaces, so
+the helper reads the window list only when a window appears, and every 15
+seconds as a safety net. An earlier version polled the socket 10 times a
+second and cost AeroSpace about 37% CPU; the current one costs under 1%.
+
+A lock file keeps a second instance from running, so a duplicated launchd
+agent cannot double the load.
+
 - Script: `bin/aerospace-workspace-return` (copied to
   `~/.local/bin/aerospace-workspace-return` by the installer)
 - LaunchAgent: `launchd/com.jarpex.aerospace-workspace-return.plist`, installed
   with `bash launchd/install_aerospace_workspace_return.sh`
 - Log: `/tmp/aerospace-workspace-return.log`
   (set `AEROSPACE_RETURN_DEBUG=1` for verbose output)
+- Tests: `python3 tests/test_aerospace_workspace_return.py`,
+  `python3 tests/test_integration.py`, `python3 tests/test_daemon_e2e.py`
 
 ## Launching apps with `aerolaunch`
 
