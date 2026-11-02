@@ -1,5 +1,5 @@
 #!/bin/bash
-# Description: Syncs Obsidian Vault from iCloud to NAS
+# Description: Syncs Obsidian Vault between iCloud and NAS
 # Label: com.jarpex.obsidiansync
 set -euo pipefail
 
@@ -67,7 +67,7 @@ if [ -d "$DEST" ]; then
         -perms 0 \
         -dontchmod \
         -rsrc false \
-        -force "$SOURCE" \
+        -prefer newer \
         -ignore "Name .DS_Store" \
         -ignore "Name .Trashes" \
         -ignore "Name .DocumentRevisions-V100" \
