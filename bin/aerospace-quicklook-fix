@@ -1,0 +1,17 @@
+#!/bin/bash
+# Move a Quick Look preview window back to its origin workspace.
+# Called via exec-and-forget from AeroSpace on-window-detected.
+# $AEROSPACE_WINDOW_ID and $AEROSPACE_WORKSPACE are set by AeroSpace.
+
+AEROSPACE=/opt/homebrew/bin/aerospace
+wid="$AEROSPACE_WINDOW_ID"
+origin="$AEROSPACE_WORKSPACE"
+
+sleep 0.5
+
+title=$($AEROSPACE list-windows --all --format "%{window-id} %{window-title}" 2>/dev/null | awk -v id="$wid" '$1 == id { $1=""; print substr($0,2) }')
+
+if [ "$title" = "Quick Look" ]; then
+    $AEROSPACE move-node-to-workspace --window-id "$wid" "$origin"
+    $AEROSPACE workspace "$origin"
+fi
