@@ -58,6 +58,7 @@ on-window-detected = [
     { if = 'test %{app-bundle-id} = com.apple.calculator', check-further-callbacks = false, run = 'layout floating' },
     { if = 'test %{app-bundle-id} = com.apple.systempreferences', check-further-callbacks = false, run = 'layout floating' },
     { if = 'test %{app-bundle-id} = com.apple.Stickies', check-further-callbacks = false, run = 'layout floating' },
+    { if = 'test %{app-bundle-id} = com.jarpex.human', check-further-callbacks = false, run = 'layout floating' },
     { if = 'test %{app-bundle-id} = com.apple.quicklook.QuickLookUIService', check-further-callbacks = false, run = 'layout floating' },
     { if = 'test %{app-bundle-id} = com.apple.quicklook.satellite', check-further-callbacks = false, run = 'layout floating' },
     { if = 'test %{app-name} ~= QuickLook', check-further-callbacks = false, run = 'layout floating' },

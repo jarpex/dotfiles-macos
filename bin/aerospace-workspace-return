@@ -791,9 +791,9 @@ def subscriber_thread(tracker, wake):
                     commands.command("workspace", target)
                 elif kind == "focused-workspace-changed":
                     tracker.workspace_focused(event.get("workspace"))
-                    # Stickies is a note app whose windows float on top of
-                    # everything on every workspace. AeroSpace has no sticky
-                    # window support, so move all Stickies windows to the
+                    # Stickies and com.jarpex.human are apps whose windows float
+                    # on top of everything on every workspace. AeroSpace has no
+                    # sticky window support, so move all their windows to the
                     # workspace the user just switched to, so they follow.
                     new_workspace = event.get("workspace")
                     prev_workspace = event.get("prevWorkspace")
@@ -803,7 +803,7 @@ def subscriber_thread(tracker, wake):
                                                    "--format", "%{window-id} %{app-bundle-id} %{workspace}")
                             for line in out.splitlines():
                                 parts = line.split()
-                                if len(parts) >= 3 and parts[1] == "com.apple.Stickies" and parts[2] != new_workspace:
+                                if len(parts) >= 3 and parts[1] in ("com.apple.Stickies", "com.jarpex.human") and parts[2] != new_workspace:
                                     commands.command("move-node-to-workspace", "--window-id", parts[0], new_workspace)
                         except SocketError:
                             pass
