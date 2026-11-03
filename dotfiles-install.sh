@@ -98,6 +98,8 @@ install_script "bin/sync_obsidian.sh" ".local/bin/sync_obsidian"
 link_file "bin/aerolaunch" ".local/bin/aerolaunch"
 # install the workspace-return helper as a real copy
 install_script "bin/aerospace-workspace-return" ".local/bin/aerospace-workspace-return"
+# install aerospace-quicklook-fix into ~/.local/bin
+install_script "bin/aerospace-quicklook-fix" ".local/bin/aerospace-quicklook-fix"
 # load the launch agents
 bash "$DOTFILES_DIR/launchd/install_obsidian_sync.sh" || true
 bash "$DOTFILES_DIR/launchd/install_aerospace_workspace_return.sh" || true
