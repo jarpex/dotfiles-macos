@@ -347,7 +347,7 @@ class Tracker(object):
             log("window %s moved by hand %s -> %s (new origin)"
                 % (window_id, previous, workspace))
 
-    def window_detected(self, window_id, workspace, bundle=None, app_name=None):
+    def window_detected(self, window_id, workspace, bundle=None, app_name=None, window_title=None):
         if window_id is None:
             return
         with self.lock:
@@ -369,7 +369,7 @@ class Tracker(object):
                             self.bundle, self.pid, self.move_origin,
                             self.move_location):
                 trim(mapping)
-        log("detected window %s on workspace %s bundle=%s app=%s" % (window_id, workspace, bundle, app_name))
+        log("detected window %s on workspace %s bundle=%s app=%s title=%s" % (window_id, workspace, bundle, app_name, window_title))
         self._notify()
 
     def window_focused(self, window_id, workspace):
@@ -767,7 +767,8 @@ def subscriber_thread(tracker, wake):
                     tracker.window_detected(event.get("windowId"),
                                             event.get("workspace"),
                                             event.get("appBundleId"),
-                                            event.get("appName"))
+                                            event.get("appName"),
+                                            event.get("windowTitle"))
                     # Only the window list knows the new window's pid.
                     wake.set()
                 elif kind == "focus-changed":
