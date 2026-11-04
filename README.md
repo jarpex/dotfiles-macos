@@ -36,8 +36,8 @@ If the window was collected first, the bounce is recognised from the event
 stream - focus landing on an empty workspace - and undone immediately.
 
 It also provides pseudo-sticky window support for apps like `Stickies` and
-`Human` (`com.jarpex.human`), automatically moving them to whichever
-workspace is currently focused.
+[Human](https://github.com/jarpex/Human) (`com.jarpex.human`), automatically
+moving them to whichever workspace is currently focused.
 
 Every command to AeroSpace's socket makes it lay out all its workspaces, so
 the helper reads the window list only when a window appears, and every 15
