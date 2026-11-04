@@ -130,108 +130,108 @@ class FakeServer(threading.Thread):
 
 
 def main():
-    tmpdir = tempfile.mkdtemp()
-    sock_path = os.path.join(tmpdir, "aerospace.sock")
-    log_path = os.path.join(tmpdir, "helper.log")
-    lock_path = os.path.join(tmpdir, "helper.lock")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        sock_path = os.path.join(tmpdir, "aerospace.sock")
+        log_path = os.path.join(tmpdir, "helper.log")
+        lock_path = os.path.join(tmpdir, "helper.lock")
 
-    server = FakeServer(sock_path)
-    server.start()
-    time.sleep(0.2)
+        server = FakeServer(sock_path)
+        server.start()
+        time.sleep(0.2)
 
-    # The helper hardcodes the socket path, so we patch it at import time by
-    # running a small wrapper that overrides socket_path before main() runs.
-    wrapper = os.path.join(tmpdir, "wrapper.py")
-    with open(wrapper, "w") as handle:
-        handle.write(
-            "import sys, runpy\n"
-            "src = open(%r).read().replace('if __name__ == \"__main__\":', 'if False:')\n"
-            "mod = type(sys)('awr')\n"
-            "exec(compile(src, 'awr', 'exec'), mod.__dict__)\n"
-            "mod.socket_path = lambda: %r\n"
-            "mod.main()\n" % (SRC, sock_path)
-        )
+        # The helper hardcodes the socket path, so we patch it at import time by
+        # running a small wrapper that overrides socket_path before main() runs.
+        wrapper = os.path.join(tmpdir, "wrapper.py")
+        with open(wrapper, "w") as handle:
+            handle.write(
+                "import sys, runpy\n"
+                "src = open(%r).read().replace('if __name__ == \"__main__\":', 'if False:')\n"
+                "mod = type(sys)('awr')\n"
+                "exec(compile(src, 'awr', 'exec'), mod.__dict__)\n"
+                "mod.socket_path = lambda: %r\n"
+                "mod.main()\n" % (SRC, sock_path)
+            )
 
-    env = dict(os.environ)
-    env["AEROSPACE_RETURN_LOG"] = log_path
-    env["AEROSPACE_RETURN_LOCK"] = lock_path
-    proc = subprocess.Popen([sys.executable, wrapper], env=env,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    time.sleep(1.5)
+        env = dict(os.environ)
+        env["AEROSPACE_RETURN_LOG"] = log_path
+        env["AEROSPACE_RETURN_LOCK"] = lock_path
+        proc = subprocess.Popen([sys.executable, wrapper], env=env,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(1.5)
 
-    failures = 0
-    app = None
-    try:
-        if proc.poll() is not None:
-            out, err = proc.communicate()
-            print("  FAIL  helper exited early: %s %s" % (out.decode(), err.decode()))
-            return 1
-        print("  PASS  helper daemon started and stayed running")
-
-        # 1. A Telegram window appears on workspace 2. The app is a real
-        #    process, so the helper can watch it with kqueue.
-        app = subprocess.Popen(["/bin/sh", "-c", "sleep 30"])
-        server.pid = app.pid
-        server.windows[5000] = "2"
-        server.emit({"_event": "window-detected", "windowId": 5000, "workspace": "2",
-                     "appBundleId": BUNDLE, "appName": "Telegram"})
-        time.sleep(0.6)
-
-        # 2. The auto-assign callback moves it to workspace 9.
-        server.windows[5000] = "9"
-        server.emit({"_event": "focus-changed", "windowId": 5000, "workspace": "9"})
-        time.sleep(0.6)
-
-        # 3. The app quits. AeroSpace has not collected the window yet - it
-        #    is still in the tree - so the helper can rescue it by moving it
-        #    back to its origin. That makes AeroSpace's own focus restore a
-        #    no-op, so the bounce never happens.
-        app.kill()
-        app.wait()
-        time.sleep(0.4)
-
-        # 4. AeroSpace finally collects the window.
-        del server.windows[5000]
-        server.emit({"_event": "focus-changed", "windowId": 4999, "workspace": "2"})
-        server.emit({"_event": "focused-workspace-changed", "prevWorkspace": "9", "workspace": "2"})
-        time.sleep(0.6)
-
-        failures += check("helper rescued the dying window back to its origin",
-                          any(a[0] == "move-node-to-workspace" and a[-1] == "2"
-                              for a in server.commands),
-                          "commands=%r" % (server.commands,))
-        failures += check("helper did not bounce the focus",
-                          "9" not in server.switches,
-                          "switches=%r" % (server.switches,))
-        failures += check("focus stayed on the origin workspace",
-                          server.focused == "2",
-                          "focused=%r" % server.focused)
-
-        # 5. A second instance must not start, or the load on AeroSpace
-        #    doubles.
-        second = subprocess.Popen([sys.executable, wrapper], env=env,
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        time.sleep(1.0)
-        failures += check("a second instance refuses to run",
-                          second.poll() is not None,
-                          "second instance is still running")
-        if second.poll() is None:
-            second.kill()
-    finally:
-        if app is not None and app.poll() is None:
-            app.kill()
-        proc.terminate()
+        failures = 0
+        app = None
         try:
-            proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+            if proc.poll() is not None:
+                out, err = proc.communicate()
+                print("  FAIL  helper exited early: %s %s" % (out.decode(), err.decode()))
+                return 1
+            print("  PASS  helper daemon started and stayed running")
 
-    print()
-    if failures:
-        print("%d FAILURE(S)" % failures)
-        return 1
-    print("daemon end-to-end test passed")
-    return 0
+            # 1. A Telegram window appears on workspace 2. The app is a real
+            #    process, so the helper can watch it with kqueue.
+            app = subprocess.Popen(["/bin/sh", "-c", "sleep 30"])
+            server.pid = app.pid
+            server.windows[5000] = "2"
+            server.emit({"_event": "window-detected", "windowId": 5000, "workspace": "2",
+                         "appBundleId": BUNDLE, "appName": "Telegram"})
+            time.sleep(0.6)
+
+            # 2. The auto-assign callback moves it to workspace 9.
+            server.windows[5000] = "9"
+            server.emit({"_event": "focus-changed", "windowId": 5000, "workspace": "9"})
+            time.sleep(0.6)
+
+            # 3. The app quits. AeroSpace has not collected the window yet - it
+            #    is still in the tree - so the helper can rescue it by moving it
+            #    back to its origin. That makes AeroSpace's own focus restore a
+            #    no-op, so the bounce never happens.
+            app.kill()
+            app.wait()
+            time.sleep(0.4)
+
+            # 4. AeroSpace finally collects the window.
+            del server.windows[5000]
+            server.emit({"_event": "focus-changed", "windowId": 4999, "workspace": "2"})
+            server.emit({"_event": "focused-workspace-changed", "prevWorkspace": "9", "workspace": "2"})
+            time.sleep(0.6)
+
+            failures += check("helper rescued the dying window back to its origin",
+                              any(a[0] == "move-node-to-workspace" and a[-1] == "2"
+                                  for a in server.commands),
+                              "commands=%r" % (server.commands,))
+            failures += check("helper did not bounce the focus",
+                              "9" not in server.switches,
+                              "switches=%r" % (server.switches,))
+            failures += check("focus stayed on the origin workspace",
+                              server.focused == "2",
+                              "focused=%r" % server.focused)
+
+            # 5. A second instance must not start, or the load on AeroSpace
+            #    doubles.
+            second = subprocess.Popen([sys.executable, wrapper], env=env,
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            time.sleep(1.0)
+            failures += check("a second instance refuses to run",
+                              second.poll() is not None,
+                              "second instance is still running")
+            if second.poll() is None:
+                second.kill()
+        finally:
+            if app is not None and app.poll() is None:
+                app.kill()
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+
+        print()
+        if failures:
+            print("%d FAILURE(S)" % failures)
+            return 1
+        print("daemon end-to-end test passed")
+        return 0
 
 
 if __name__ == "__main__":

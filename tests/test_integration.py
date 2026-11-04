@@ -147,93 +147,93 @@ def live(server):
 
 
 def main():
-    tmpdir = tempfile.mkdtemp()
-    sock_path = os.path.join(tmpdir, "aerospace.sock")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        sock_path = os.path.join(tmpdir, "aerospace.sock")
 
-    # Point the helper at the fake server.
-    awr.socket_path = lambda: sock_path
+        # Point the helper at the fake server.
+        awr.socket_path = lambda: sock_path
 
-    server = FakeServer(sock_path)
-    server.start()
-    time.sleep(0.2)
+        server = FakeServer(sock_path)
+        server.start()
+        time.sleep(0.2)
 
-    events = []
-    awr.log = lambda message: events.append(message)
+        events = []
+        awr.log = lambda message: events.append(message)
 
-    tracker = awr.Tracker()
-    print("test A: full flow through the real Tracker + client code")
+        tracker = awr.Tracker()
+        print("test A: full flow through the real Tracker + client code")
 
-    # 1. A window appears on workspace 2.
-    server.windows[1000] = "2"
-    server.emit({"_event": "window-detected", "windowId": 1000, "workspace": "2",
-                 "appBundleId": "ru.keepcoder.Telegram", "appName": "Telegram"})
-    time.sleep(0.2)
-    tracker.window_detected(1000, "2")
-    tracker.sync_windows(live(server))
-    check("window tracked with origin 2", tracker.origin.get(1000) == "2")
+        # 1. A window appears on workspace 2.
+        server.windows[1000] = "2"
+        server.emit({"_event": "window-detected", "windowId": 1000, "workspace": "2",
+                     "appBundleId": "ru.keepcoder.Telegram", "appName": "Telegram"})
+        time.sleep(0.2)
+        tracker.window_detected(1000, "2")
+        tracker.sync_windows(live(server))
+        check("window tracked with origin 2", tracker.origin.get(1000) == "2")
 
-    # 2. The auto-assign callback moves it to workspace 9.
-    server.windows[1000] = "9"
-    tracker.sync_windows(live(server))
-    check("auto-move detected", tracker.auto_moved.get(1000) is True)
+        # 2. The auto-assign callback moves it to workspace 9.
+        server.windows[1000] = "9"
+        tracker.sync_windows(live(server))
+        check("auto-move detected", tracker.auto_moved.get(1000) is True)
 
-    # 3. The app is closed: the window disappears and macOS focuses the other app.
-    del server.windows[1000]
-    server.focused = "2"          # macOS focus went to the app on workspace 2
-    tracker.sync_windows(live(server))
-    check("return scheduled", tracker.pending_return is not None)
-    if tracker.pending_return:
-        check("origin is 2", tracker.pending_return[0] == "2")
-        check("moved_to is 9", tracker.pending_return[1] == "9")
+        # 3. The app is closed: the window disappears and macOS focuses the other app.
+        del server.windows[1000]
+        server.focused = "2"          # macOS focus went to the app on workspace 2
+        tracker.sync_windows(live(server))
+        check("return scheduled", tracker.pending_return is not None)
+        if tracker.pending_return:
+            check("origin is 2", tracker.pending_return[0] == "2")
+            check("moved_to is 9", tracker.pending_return[1] == "9")
 
-    # 4. AeroSpace bounces us back to the empty workspace 9.
-    server.focused = "9"
-    target = tracker.evaluate_return("9")
-    check("helper switches back to 2 after the bounce", target == "2", "got %r" % target)
+        # 4. AeroSpace bounces us back to the empty workspace 9.
+        server.focused = "9"
+        target = tracker.evaluate_return("9")
+        check("helper switches back to 2 after the bounce", target == "2", "got %r" % target)
 
-    print("test B: the client actually issues the workspace command")
-    client = awr.AeroSpaceClient()
-    client.command("workspace", "2")
-    time.sleep(0.2)
-    check("server received a workspace switch to 2", "2" in server.switches,
-          "switches=%r" % server.switches)
+        print("test B: the client actually issues the workspace command")
+        client = awr.AeroSpaceClient()
+        client.command("workspace", "2")
+        time.sleep(0.2)
+        check("server received a workspace switch to 2", "2" in server.switches,
+              "switches=%r" % server.switches)
 
-    print("test C: helper does not switch when the user moved on purpose")
-    server.switches = []
-    server.windows[2000] = "2"
-    server.emit({"_event": "window-detected", "windowId": 2000, "workspace": "2"})
-    time.sleep(0.2)
-    tracker.window_detected(2000, "2")
-    server.windows[2000] = "9"
-    tracker.sync_windows(live(server))
-    del server.windows[2000]
-    tracker.sync_windows(live(server))
-    check("return scheduled", tracker.pending_return is not None)
-    server.focused = "5"          # user deliberately went to workspace 5
-    check("no switch when user is on 5", tracker.evaluate_return("5") is None)
-    check("no switch command issued", server.switches == [], "switches=%r" % server.switches)
+        print("test C: helper does not switch when the user moved on purpose")
+        server.switches = []
+        server.windows[2000] = "2"
+        server.emit({"_event": "window-detected", "windowId": 2000, "workspace": "2"})
+        time.sleep(0.2)
+        tracker.window_detected(2000, "2")
+        server.windows[2000] = "9"
+        tracker.sync_windows(live(server))
+        del server.windows[2000]
+        tracker.sync_windows(live(server))
+        check("return scheduled", tracker.pending_return is not None)
+        server.focused = "5"          # user deliberately went to workspace 5
+        check("no switch when user is on 5", tracker.evaluate_return("5") is None)
+        check("no switch command issued", server.switches == [], "switches=%r" % server.switches)
 
-    print("test D: helper waits for the bounce when already home")
-    server.switches = []
-    server.windows[3000] = "2"
-    server.emit({"_event": "window-detected", "windowId": 3000, "workspace": "2"})
-    time.sleep(0.2)
-    tracker.window_detected(3000, "2")
-    server.windows[3000] = "9"
-    tracker.sync_windows(live(server))
-    del server.windows[3000]
-    tracker.sync_windows(live(server))
-    server.focused = "2"          # we are already home
-    check("no immediate switch", tracker.evaluate_return("2") is None)
-    server.focused = "9"          # now the bounce lands
-    check("switch after the bounce", tracker.evaluate_return("9") == "2")
+        print("test D: helper waits for the bounce when already home")
+        server.switches = []
+        server.windows[3000] = "2"
+        server.emit({"_event": "window-detected", "windowId": 3000, "workspace": "2"})
+        time.sleep(0.2)
+        tracker.window_detected(3000, "2")
+        server.windows[3000] = "9"
+        tracker.sync_windows(live(server))
+        del server.windows[3000]
+        tracker.sync_windows(live(server))
+        server.focused = "2"          # we are already home
+        check("no immediate switch", tracker.evaluate_return("2") is None)
+        server.focused = "9"          # now the bounce lands
+        check("switch after the bounce", tracker.evaluate_return("9") == "2")
 
-    print()
-    if failures:
-        print("%d FAILURE(S): %s" % (len(failures), ", ".join(failures)))
-        return 1
-    print("all integration tests passed")
-    return 0
+        print()
+        if failures:
+            print("%d FAILURE(S): %s" % (len(failures), ", ".join(failures)))
+            return 1
+        print("all integration tests passed")
+        return 0
 
 
 if __name__ == "__main__":
