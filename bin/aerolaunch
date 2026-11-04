@@ -21,6 +21,11 @@
 
 log() { [[ -n "$DEBUG_AEROLAUNCH" ]] && echo "[aerolaunch] $*" >> /tmp/aerolaunch-${USER:-$(id -un)}.log; return 0; }
 
+if [[ $# -eq 0 ]]; then
+    echo "Usage: aerolaunch <command> [args...]" >&2
+    exit 1
+fi
+
 local origin_ws=$(aerospace list-workspaces --focused --format "%{workspace}" 2>/dev/null)
 log "origin=$origin_ws cmd=$*"
 
@@ -39,7 +44,9 @@ esac
 
 "$@" &
 local pid=$!
+trap 'kill -TERM "$pid" 2>/dev/null; exit 130' INT TERM
 wait $pid
+trap - INT TERM
 log "child exited"
 
 # Give macOS/AeroSpace a moment to settle focus after the app died, otherwise
