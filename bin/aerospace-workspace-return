@@ -159,7 +159,10 @@ class AeroSpaceClient(object):
         chunks = []
         remaining = count
         while remaining > 0:
-            chunk = sock.recv(remaining)
+            try:
+                chunk = sock.recv(remaining)
+            except OSError as err:
+                raise SocketError(str(err))
             if not chunk:
                 raise SocketError("server closed the connection")
             chunks.append(chunk)
@@ -171,7 +174,10 @@ class AeroSpaceClient(object):
         return self._recv_exact(self._sock, length)
 
     def _send_frame(self, payload):
-        self._sock.sendall(struct.pack("<I", len(payload)) + payload)
+        try:
+            self._sock.sendall(struct.pack("<I", len(payload)) + payload)
+        except OSError as err:
+            raise SocketError(str(err))
 
     def command(self, *args):
         """Run a one-shot command and return its stdout."""
@@ -665,13 +671,13 @@ def rescue_window(tracker, commands, window_id, origin):
         log("rescued window %s in %d ms"
             % (window_id, (time.time() - sent) * 1000))
         return True
-    except SocketError as err:
+    except (SocketError, OSError) as err:
         # Collected before we got to it: the bounce correction has to
         # handle it.
         tracker.mark_rescue_failed(window_id)
         log("rescue of window %s failed after %d ms: %s"
             % (window_id, (time.time() - sent) * 1000, err))
-        return False
+        raise
 
 
 def watcher_thread(tracker, stop):
@@ -732,7 +738,13 @@ def watcher_thread(tracker, stop):
                 time.sleep(1.0)
                 continue
         for window_id, origin in dead:
-            rescue_window(tracker, commands, window_id, origin)
+            try:
+                rescue_window(tracker, commands, window_id, origin)
+            except (SocketError, OSError):
+                if commands is not None:
+                    commands.close()
+                    commands = None
+                break
 
 
 def sync_sticky_windows(commands, target_workspace):
