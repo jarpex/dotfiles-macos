@@ -13,6 +13,12 @@ link_file() {
     local source="$DOTFILES_DIR/$rel"
     local target="$HOME/$2"
 
+    # Skip if the source file does not exist in the repository
+    if [ ! -e "$source" ]; then
+        echo "Warning: source does not exist: $source, skipping."
+        return 0
+    fi
+
     # Ensure the target's parent directory exists
     mkdir -p "$(dirname "$target")"
 
