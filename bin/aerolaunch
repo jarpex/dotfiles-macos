@@ -19,7 +19,7 @@
 #   - `code` gets -w so it blocks until the editor window closes.
 #   - Anything else: we wait for the process to exit.
 
-log() { [[ -n "$DEBUG_AEROLAUNCH" ]] && echo "[aerolaunch] $*" >> /tmp/aerolaunch.log; return 0; }
+log() { [[ -n "$DEBUG_AEROLAUNCH" ]] && echo "[aerolaunch] $*" >> /tmp/aerolaunch-${USER:-$(id -un)}.log; return 0; }
 
 local origin_ws=$(aerospace list-workspaces --focused --format "%{workspace}" 2>/dev/null)
 log "origin=$origin_ws cmd=$*"

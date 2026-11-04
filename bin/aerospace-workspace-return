@@ -79,8 +79,9 @@ EVENT_NAMES = ["window-detected", "focus-changed", "focused-workspace-changed"]
 # Bundles that follow the active workspace.
 STICKY_BUNDLES = frozenset(("com.apple.Stickies", "com.jarpex.human"))
 
-LOG_PATH = os.environ.get("AEROSPACE_RETURN_LOG", "/tmp/aerospace-workspace-return.log")
-LOCK_PATH = os.environ.get("AEROSPACE_RETURN_LOCK", "/tmp/aerospace-workspace-return.lock")
+USER = getpass.getuser()
+LOG_PATH = os.environ.get("AEROSPACE_RETURN_LOG", "/tmp/aerospace-workspace-return-%s.log" % USER)
+LOCK_PATH = os.environ.get("AEROSPACE_RETURN_LOCK", "/tmp/aerospace-workspace-return-%s.lock" % USER)
 DEBUG = os.environ.get("AEROSPACE_RETURN_DEBUG") == "1"
 
 _log_lock = threading.Lock()
