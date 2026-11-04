@@ -76,6 +76,8 @@ DEAD_ENTRY_TTL = 2.0
 MAX_TRACKED = 256
 # Events we subscribe to.
 EVENT_NAMES = ["window-detected", "focus-changed", "focused-workspace-changed"]
+# Bundles that follow the active workspace.
+STICKY_BUNDLES = frozenset(("com.apple.Stickies", "com.jarpex.human"))
 
 LOG_PATH = os.environ.get("AEROSPACE_RETURN_LOG", "/tmp/aerospace-workspace-return.log")
 LOCK_PATH = os.environ.get("AEROSPACE_RETURN_LOCK", "/tmp/aerospace-workspace-return.lock")
@@ -728,6 +730,48 @@ def watcher_thread(tracker, stop):
             rescue_window(tracker, commands, window_id, origin)
 
 
+def sync_sticky_windows(commands, target_workspace):
+    """Moves all Stickies and Human windows to target_workspace in one batch."""
+    if not target_workspace:
+        return
+    try:
+        out = commands.command(
+            "list-windows", "--all",
+            "--format", "%{window-id}\t%{app-bundle-id}\t%{workspace}"
+        )
+    except SocketError as err:
+        log("failed to list windows for sticky follow: %s" % err)
+        return
+
+    to_move = []
+    for line in out.splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 3:
+            wid = parts[0].strip()
+            bundle = parts[1].strip()
+            ws = parts[2].strip()
+            if bundle in STICKY_BUNDLES and ws != target_workspace:
+                to_move.append(wid)
+
+    if not to_move:
+        return
+
+    # Batch all moves into a single eval command for minimal latency.
+    eval_cmd = "; ".join(
+        "move-node-to-workspace --window-id %s %s" % (wid, target_workspace)
+        for wid in to_move
+    )
+    try:
+        commands.command("eval", "--", eval_cmd)
+    except SocketError as err:
+        log("batch eval move failed, falling back: %s" % err)
+        for wid in to_move:
+            try:
+                commands.command("move-node-to-workspace", "--window-id", wid, target_workspace)
+            except SocketError:
+                pass
+
+
 def subscriber_thread(tracker, wake):
     """Keeps a subscribe connection alive, reconnecting as needed.
 
@@ -764,13 +808,23 @@ def subscriber_thread(tracker, wake):
             for event in client.subscribe(EVENT_NAMES):
                 kind = event.get("_event")
                 if kind == "window-detected":
-                    tracker.window_detected(event.get("windowId"),
-                                            event.get("workspace"),
-                                            event.get("appBundleId"),
+                    wid = event.get("windowId")
+                    ws = event.get("workspace")
+                    bundle = event.get("appBundleId")
+                    tracker.window_detected(wid,
+                                            ws,
+                                            bundle,
                                             event.get("appName"),
                                             event.get("windowTitle"))
                     # Only the window list knows the new window's pid.
                     wake.set()
+                    if bundle in STICKY_BUNDLES:
+                        curr_ws = tracker.focused_workspace_now()
+                        if curr_ws and ws != curr_ws:
+                            try:
+                                commands.command("move-node-to-workspace", "--window-id", str(wid), curr_ws)
+                            except SocketError:
+                                pass
                 elif kind == "focus-changed":
                     tracker.window_focused(event.get("windowId"), event.get("workspace"))
                     if event.get("windowId") is not None:
@@ -798,15 +852,8 @@ def subscriber_thread(tracker, wake):
                     new_workspace = event.get("workspace")
                     prev_workspace = event.get("prevWorkspace")
                     if new_workspace is not None and new_workspace != prev_workspace:
-                        try:
-                            out = commands.command("list-windows", "--all",
-                                                   "--format", "%{window-id} %{app-bundle-id} %{workspace}")
-                            for line in out.splitlines():
-                                parts = line.split()
-                                if len(parts) >= 3 and parts[1] in ("com.apple.Stickies", "com.jarpex.human") and parts[2] != new_workspace:
-                                    commands.command("move-node-to-workspace", "--window-id", parts[0], new_workspace)
-                        except SocketError:
-                            pass
+                        if tracker.bounce_target(new_workspace) is None:
+                            sync_sticky_windows(commands, new_workspace)
         except (SocketError, OSError, ValueError) as err:
             log("event stream dropped: %s" % err)
             time.sleep(1.0)
