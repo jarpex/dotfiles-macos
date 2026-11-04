@@ -305,17 +305,14 @@ t.dead_auto_moves["9"] = ("2", time.monotonic() - 1)
 check("a stale desk does not hijack a deliberate switch",
       t.bounce_target("9") is None, "got %r" % t.bounce_target("9"))
 
-print("test 26: sync_sticky_windows batches moves via eval")
+print("test 26: sync_sticky_windows_from_tracker batches moves via eval")
 class MockAeroSpace:
-    def __init__(self, windows_output, eval_fails=False):
-        self.windows_output = windows_output
+    def __init__(self, eval_fails=False):
         self.eval_fails = eval_fails
         self.commands = []
     def command(self, *args):
         self.commands.append(args)
-        if args[0] == "list-windows":
-            return self.windows_output
-        elif args[0] == "eval":
+        if args[0] == "eval":
             if self.eval_fails:
                 raise awr.SocketError("eval failed")
             return ""
@@ -323,21 +320,38 @@ class MockAeroSpace:
             return ""
         return ""
 
-mock = MockAeroSpace("101\tcom.apple.Stickies\t1\n102\tcom.jarpex.human\t1\n103\tcom.apple.finder\t1")
-awr.sync_sticky_windows(mock, "2")
+tracker26 = awr.Tracker()
+tracker26.bundle[101] = "com.apple.Stickies"
+tracker26.location[101] = "1"
+tracker26.bundle[102] = "com.jarpex.human"
+tracker26.location[102] = "1"
+tracker26.bundle[103] = "com.apple.finder"
+tracker26.location[103] = "1"
+mock = MockAeroSpace()
+awr.sync_sticky_windows_from_tracker(tracker26, mock, "2")
 check("eval was called with batched move command",
-      len(mock.commands) == 2 and mock.commands[1][0] == "eval" and
-      "move-node-to-workspace --window-id 101 2" in mock.commands[1][2] and
-      "move-node-to-workspace --window-id 102 2" in mock.commands[1][2])
+      len(mock.commands) == 1 and mock.commands[0][0] == "eval" and
+      "move-node-to-workspace --window-id 101 2" in mock.commands[0][2] and
+      "move-node-to-workspace --window-id 102 2" in mock.commands[0][2])
 
-print("test 27: sync_sticky_windows ignores windows already on target workspace")
-mock_noop = MockAeroSpace("101\tcom.apple.Stickies\t2\n102\tcom.jarpex.human\t2")
-awr.sync_sticky_windows(mock_noop, "2")
-check("no move command issued when already on target", len(mock_noop.commands) == 1)
+print("test 27: sync_sticky_windows_from_tracker ignores windows already on target workspace")
+tracker27 = awr.Tracker()
+tracker27.bundle[101] = "com.apple.Stickies"
+tracker27.location[101] = "2"
+tracker27.bundle[102] = "com.jarpex.human"
+tracker27.location[102] = "2"
+mock_noop = MockAeroSpace()
+awr.sync_sticky_windows_from_tracker(tracker27, mock_noop, "2")
+check("no move command issued when already on target", len(mock_noop.commands) == 0)
 
-print("test 28: sync_sticky_windows falls back if eval fails")
-mock_fallback = MockAeroSpace("101\tcom.apple.Stickies\t1\n102\tcom.jarpex.human\t1", eval_fails=True)
-awr.sync_sticky_windows(mock_fallback, "2")
+print("test 28: sync_sticky_windows_from_tracker falls back if eval fails")
+tracker28 = awr.Tracker()
+tracker28.bundle[101] = "com.apple.Stickies"
+tracker28.location[101] = "1"
+tracker28.bundle[102] = "com.jarpex.human"
+tracker28.location[102] = "1"
+mock_fallback = MockAeroSpace(eval_fails=True)
+awr.sync_sticky_windows_from_tracker(tracker28, mock_fallback, "2")
 fallback_moves = [cmd for cmd in mock_fallback.commands if cmd[0] == "move-node-to-workspace"]
 check("fallback moves both windows individually", len(fallback_moves) == 2)
 

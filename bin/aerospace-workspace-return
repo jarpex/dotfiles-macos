@@ -798,48 +798,6 @@ def sync_sticky_windows_from_tracker(tracker, commands, target_workspace):
                 tracker.location[wid] = target_workspace
 
 
-def sync_sticky_windows(commands, target_workspace):
-    """Moves all Stickies and Human windows to target_workspace in one batch."""
-    if not target_workspace:
-        return
-    try:
-        out = commands.command(
-            "list-windows", "--all",
-            "--format", "%{window-id}\t%{app-bundle-id}\t%{workspace}"
-        )
-    except SocketError as err:
-        log("failed to list windows for sticky follow: %s" % err)
-        return
-
-    to_move = []
-    for line in out.splitlines():
-        parts = line.split("\t")
-        if len(parts) >= 3:
-            wid = parts[0].strip()
-            bundle = parts[1].strip()
-            ws = parts[2].strip()
-            if bundle in STICKY_BUNDLES and ws != target_workspace:
-                to_move.append(wid)
-
-    if not to_move:
-        return
-
-    # Batch all moves into a single eval command for minimal latency.
-    eval_cmd = "; ".join(
-        "move-node-to-workspace --window-id %s %s" % (wid, target_workspace)
-        for wid in to_move
-    )
-    try:
-        commands.command("eval", "--", eval_cmd)
-    except SocketError as err:
-        log("batch eval move failed, falling back: %s" % err)
-        for wid in to_move:
-            try:
-                commands.command("move-node-to-workspace", "--window-id", wid, target_workspace)
-            except SocketError:
-                pass
-
-
 def subscriber_thread(tracker, wake):
     """Keeps a subscribe connection alive, reconnecting as needed.
 
