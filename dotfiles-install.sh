@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-# Path to your dotfiles repository
-DOTFILES_DIR="$HOME/Documents/Repos/dotfiles"
+# Path to your dotfiles repository, resolved dynamically from this script's location
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Backup directory for existing files
 BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
 
