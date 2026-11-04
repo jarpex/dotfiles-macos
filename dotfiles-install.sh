@@ -109,5 +109,5 @@ install_script "bin/aerospace-workspace-return" ".local/bin/aerospace-workspace-
 # install aerospace-quicklook-fix into ~/.local/bin
 install_script "bin/aerospace-quicklook-fix" ".local/bin/aerospace-quicklook-fix"
 # load the launch agents
-bash "$DOTFILES_DIR/launchd/install_obsidian_sync.sh" || true
-bash "$DOTFILES_DIR/launchd/install_aerospace_workspace_return.sh" || true
+bash "$DOTFILES_DIR/launchd/install_agent.sh" "$DOTFILES_DIR/launchd/com.jarpex.obsidiansync.plist" || true
+bash "$DOTFILES_DIR/launchd/install_agent.sh" "$DOTFILES_DIR/launchd/com.jarpex.aerospace-workspace-return.plist" || true

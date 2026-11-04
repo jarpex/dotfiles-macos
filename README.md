@@ -46,7 +46,7 @@ agent cannot double the load.
 - Script: `bin/aerospace-workspace-return` (copied to
   `~/.local/bin/aerospace-workspace-return` by the installer)
 - LaunchAgent: `launchd/com.jarpex.aerospace-workspace-return.plist`, installed
-  with `bash launchd/install_aerospace_workspace_return.sh`
+  with `bash launchd/install_agent.sh launchd/com.jarpex.aerospace-workspace-return.plist`
 - Log: `/tmp/aerospace-workspace-return.log`
   (set `AEROSPACE_RETURN_DEBUG=1` for verbose output)
 - Tests: `python3 tests/test_aerospace_workspace_return.py`,
@@ -78,7 +78,7 @@ a mounted NAS using `unison`.
 - Usage: run manually or via `launchd`; the script supports `--skip-power-check` (or `-s`) to bypass the AC-power check.
 - Install: run `bash dotfiles-install.sh` to copy the script into `~/.local/bin` and make it executable.
 - LaunchAgent: `launchd/com.jarpex.obsidiansync.plist`, installed by
-  `launchd/install_obsidian_sync.sh`, which patches the `{{USER}}` placeholder
+  `launchd/install_agent.sh`, which patches the `{{USER}}` placeholder
   and loads the agent into `~/Library/LaunchAgents`.
 
 Notes:
