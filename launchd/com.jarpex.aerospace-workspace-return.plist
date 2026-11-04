@@ -16,8 +16,8 @@
     <key>ThrottleInterval</key>
     <integer>10</integer>
     <key>StandardOutPath</key>
-    <string>/tmp/aerospace-workspace-return.out.log</string>
+    <string>/tmp/aerospace-workspace-return-{{USER}}.out.log</string>
     <key>StandardErrorPath</key>
-    <string>/tmp/aerospace-workspace-return.err.log</string>
+    <string>/tmp/aerospace-workspace-return-{{USER}}.err.log</string>
 </dict>
 </plist>
