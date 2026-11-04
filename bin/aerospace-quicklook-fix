@@ -23,9 +23,18 @@ wid="${AEROSPACE_WINDOW_ID:-${1:-}}"
 
 # Wait briefly for window title to appear
 title=""
-for _ in 1 2 3 4; do
+subrole=""
+for _ in 1 2 3 4 5 6 7 8 9 10; do
     title=$("$AEROSPACE" echo --window-id "$wid" -- '%{window-title}' 2>/dev/null || true)
     [ -n "$title" ] && break
+    if [ -z "$subrole" ]; then
+        subrole=$(osascript -e 'tell application "System Events" to tell process "Finder" to get subrole of front window' 2>/dev/null || true)
+    fi
+    # Quick Look panels expose a non-standard subrole; handle them without
+    # waiting for a title.
+    if [ -n "$subrole" ] && [ "$subrole" != "AXStandardWindow" ]; then
+        break
+    fi
     sleep 0.05
 done
 
