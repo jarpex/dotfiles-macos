@@ -35,10 +35,32 @@ done
 
 # Acquire lock to prevent overlapping runs
 if mkdir "$LOCK_DIR" 2>/dev/null; then
+    echo $$ > "$LOCK_DIR/pid"
     trap 'rm -rf "$LOCK_DIR"' INT TERM EXIT
 else
-    echo "Another instance is running. Exiting."
-    exit 0
+    # Check for a stale lock left by a crashed/killed process
+    stale=0
+    if [ -f "$LOCK_DIR/pid" ]; then
+        old_pid=$(cat "$LOCK_DIR/pid" 2>/dev/null || true)
+        if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null; then
+            echo "Another instance is running. Exiting."
+            exit 0
+        fi
+        stale=1
+    else
+        stale=1
+    fi
+
+    if [ "$stale" -eq 1 ]; then
+        rm -rf "$LOCK_DIR"
+        if mkdir "$LOCK_DIR" 2>/dev/null; then
+            echo $$ > "$LOCK_DIR/pid"
+            trap 'rm -rf "$LOCK_DIR"' INT TERM EXIT
+        else
+            echo "Another instance is running. Exiting."
+            exit 0
+        fi
+    fi
 fi
 
 if [[ ! -d "$SOURCE" ]]; then
