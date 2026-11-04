@@ -123,6 +123,11 @@ class SocketError(Exception):
     pass
 
 
+class CommandError(SocketError):
+    """Raised when AeroSpace socket is alive, but command returned exitCode != 0."""
+    pass
+
+
 class AeroSpaceClient(object):
     """A client for AeroSpace's Unix-socket command protocol."""
 
@@ -192,7 +197,7 @@ class AeroSpaceClient(object):
         self._send_frame(json.dumps(request).encode("utf-8"))
         answer = json.loads(self._recv_frame())
         if answer.get("exitCode", 0) != 0:
-            raise SocketError(answer.get("stderr", "command failed"))
+            raise CommandError(answer.get("stderr", "command failed"))
         return answer.get("stdout", "")
 
     def subscribe(self, events):
@@ -675,12 +680,15 @@ def rescue_window(tracker, commands, window_id, origin):
         log("rescued window %s in %d ms"
             % (window_id, (time.time() - sent) * 1000))
         return True
-    except (SocketError, OSError) as err:
-        # Collected before we got to it: the bounce correction has to
-        # handle it.
+    except CommandError as err:
+        # Window already collected by AeroSpace: socket is fine.
         tracker.mark_rescue_failed(window_id)
-        log("rescue of window %s failed after %d ms: %s"
-            % (window_id, (time.time() - sent) * 1000, err))
+        log("rescue of window %s failed (already gone): %s" % (window_id, err))
+        return False
+    except (SocketError, OSError) as err:
+        # Real transport failure.
+        tracker.mark_rescue_failed(window_id)
+        log("rescue transport error on window %s: %s" % (window_id, err))
         raise
 
 
