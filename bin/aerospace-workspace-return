@@ -310,9 +310,9 @@ class Tracker(object):
         self.bundle = {}
         self.pid = {}
         # window ids that have already been rescued back to their origin
-        self.rescued = set()
+        self.rescued = {}
         # window ids whose rescue lost the race with AeroSpace's collection
-        self.rescue_failed = set()
+        self.rescue_failed = {}
         # window id -> origin workspace of its automatic move. Kept even after
         # the window closes, so a late focus change can still be recognised.
         self.move_origin = {}
@@ -448,6 +448,8 @@ class Tracker(object):
                 origin = self.origin.pop(window_id)
                 location = self.location.pop(window_id, None)
                 self.detected_at.pop(window_id, None)
+                self.bundle.pop(window_id, None)
+                self.pid.pop(window_id, None)
                 automatic = self.auto_moved.pop(window_id, False)
                 rescued = window_id in self.rescued
                 failed = window_id in self.rescue_failed
@@ -530,8 +532,8 @@ class Tracker(object):
     def mark_rescued(self, window_id):
         """Records that the window was moved back to its origin in time."""
         with self.lock:
-            self.rescued.add(window_id)
-            self.rescue_failed.discard(window_id)
+            self.rescued[window_id] = None
+            self.rescue_failed.pop(window_id, None)
             # The entry in auto_moved_to stays until the window is seen gone:
             # it is what tells a later bounce that the window died on that
             # desk, and a failing rescue means the bounce is already on its
@@ -548,8 +550,8 @@ class Tracker(object):
         takes it seriously again.
         """
         with self.lock:
-            self.rescued.discard(window_id)
-            self.rescue_failed.add(window_id)
+            self.rescued.pop(window_id, None)
+            self.rescue_failed[window_id] = None
             trim(self.rescue_failed)
         self._notify()
 
