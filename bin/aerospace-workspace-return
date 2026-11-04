@@ -757,7 +757,7 @@ def sync_sticky_windows_from_tracker(tracker, commands, target_workspace):
         return
     with tracker.lock:
         to_move = [
-            str(wid) for wid, bundle in tracker.bundle.items()
+            wid for wid, bundle in tracker.bundle.items()
             if bundle in STICKY_BUNDLES
             and wid in tracker.location
             and tracker.location.get(wid) != target_workspace
@@ -770,15 +770,24 @@ def sync_sticky_windows_from_tracker(tracker, commands, target_workspace):
         "move-node-to-workspace --window-id %s %s" % (wid, target_workspace)
         for wid in to_move
     )
+    moved_successfully = False
     try:
         commands.command("eval", "--", eval_cmd)
+        moved_successfully = True
     except (SocketError, OSError) as err:
         log("batch sticky move failed: %s" % err)
         for wid in to_move:
             try:
-                commands.command("move-node-to-workspace", "--window-id", wid, target_workspace)
+                commands.command("move-node-to-workspace", "--window-id", str(wid), target_workspace)
+                with tracker.lock:
+                    tracker.location[wid] = target_workspace
             except (SocketError, OSError):
                 pass
+
+    if moved_successfully:
+        with tracker.lock:
+            for wid in to_move:
+                tracker.location[wid] = target_workspace
 
 
 def sync_sticky_windows(commands, target_workspace):
@@ -874,6 +883,8 @@ def subscriber_thread(tracker, wake):
                         if curr_ws and ws != curr_ws:
                             try:
                                 commands.command("move-node-to-workspace", "--window-id", str(wid), curr_ws)
+                                with tracker.lock:
+                                    tracker.location[wid] = curr_ws
                             except SocketError:
                                 pass
                 elif kind == "focus-changed":
