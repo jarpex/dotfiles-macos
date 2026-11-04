@@ -26,7 +26,7 @@ if [[ $# -eq 0 ]]; then
     exit 1
 fi
 
-local origin_ws=$(aerospace list-workspaces --focused --format "%{workspace}" 2>/dev/null)
+typeset origin_ws=$(aerospace list-workspaces --focused --format "%{workspace}" 2>/dev/null)
 log "origin=$origin_ws cmd=$*"
 
 case "$1" in
@@ -43,7 +43,7 @@ case "$1" in
 esac
 
 "$@" &
-local pid=$!
+typeset pid=$!
 trap 'kill -TERM "$pid" 2>/dev/null; exit 130' INT TERM
 wait $pid
 trap - INT TERM
