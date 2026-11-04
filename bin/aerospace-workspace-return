@@ -747,6 +747,36 @@ def watcher_thread(tracker, stop):
                 break
 
 
+def sync_sticky_windows_from_tracker(tracker, commands, target_workspace):
+    """Moves all Stickies and Human windows to target_workspace using tracker state."""
+    if not target_workspace:
+        return
+    with tracker.lock:
+        to_move = [
+            str(wid) for wid, bundle in tracker.bundle.items()
+            if bundle in STICKY_BUNDLES
+            and wid in tracker.location
+            and tracker.location.get(wid) != target_workspace
+        ]
+
+    if not to_move:
+        return
+
+    eval_cmd = "; ".join(
+        "move-node-to-workspace --window-id %s %s" % (wid, target_workspace)
+        for wid in to_move
+    )
+    try:
+        commands.command("eval", "--", eval_cmd)
+    except (SocketError, OSError) as err:
+        log("batch sticky move failed: %s" % err)
+        for wid in to_move:
+            try:
+                commands.command("move-node-to-workspace", "--window-id", wid, target_workspace)
+            except (SocketError, OSError):
+                pass
+
+
 def sync_sticky_windows(commands, target_workspace):
     """Moves all Stickies and Human windows to target_workspace in one batch."""
     if not target_workspace:
@@ -870,7 +900,7 @@ def subscriber_thread(tracker, wake):
                     prev_workspace = event.get("prevWorkspace")
                     if new_workspace is not None and new_workspace != prev_workspace:
                         if not tracker.is_bounce_pending_for(new_workspace):
-                            sync_sticky_windows(commands, new_workspace)
+                            sync_sticky_windows_from_tracker(tracker, commands, new_workspace)
         except (SocketError, OSError, ValueError) as err:
             log("event stream dropped: %s" % err)
             time.sleep(1.0)
