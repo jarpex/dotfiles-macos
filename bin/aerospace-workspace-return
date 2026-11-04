@@ -569,6 +569,11 @@ class Tracker(object):
             log("user moved to %s, dropping scheduled return to %s" % (focused_workspace, origin))
             return None
 
+    def is_bounce_pending_for(self, workspace):
+        """Non-mutating check whether a workspace switch is an incoming bounce."""
+        with self.lock:
+            return workspace in self.auto_moved_to
+
     def bounce_target(self, workspace):
         """Called when focus lands on an empty workspace - the bounce.
 
@@ -852,7 +857,7 @@ def subscriber_thread(tracker, wake):
                     new_workspace = event.get("workspace")
                     prev_workspace = event.get("prevWorkspace")
                     if new_workspace is not None and new_workspace != prev_workspace:
-                        if tracker.bounce_target(new_workspace) is None:
+                        if not tracker.is_bounce_pending_for(new_workspace):
                             sync_sticky_windows(commands, new_workspace)
         except (SocketError, OSError, ValueError) as err:
             log("event stream dropped: %s" % err)
