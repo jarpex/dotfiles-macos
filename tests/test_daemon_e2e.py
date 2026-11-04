@@ -24,7 +24,7 @@ import threading
 import time
 
 PROTOCOL = 1
-SRC = os.path.expanduser("~/Documents/Repos/dotfiles/bin/aerospace-workspace-return")
+SRC = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "bin", "aerospace-workspace-return"))
 BUNDLE = "ru.keepcoder.Telegram"
 
 

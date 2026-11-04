@@ -29,7 +29,7 @@ import tempfile
 import threading
 import time
 
-SRC = os.path.expanduser("~/Documents/Repos/dotfiles/bin/aerospace-workspace-return")
+SRC = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "bin", "aerospace-workspace-return"))
 source = open(SRC).read().replace('if __name__ == "__main__":', "if False:")
 awr = type(sys)("awr")
 exec(compile(source, SRC, "exec"), awr.__dict__)

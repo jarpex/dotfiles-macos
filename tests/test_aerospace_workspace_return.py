@@ -6,7 +6,7 @@ import os
 import sys
 import time
 
-SRC = os.path.expanduser("~/Documents/Repos/dotfiles/bin/aerospace-workspace-return")
+SRC = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "bin", "aerospace-workspace-return"))
 
 # A pid that is alive (this very process) and one that is guaranteed to be
 # gone, so the liveness check can be tested both ways.
