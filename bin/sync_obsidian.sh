@@ -8,8 +8,20 @@ SOURCE="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents"
 DEST="/Volumes/Asya/20_Knowledge"
 # Lock
 LOCK_FILE="/tmp/sync_obsidian_${UID}.lock"
+resolve_bin() {
+    local name="$1"
+    if command -v "$name" >/dev/null 2>&1; then
+        command -v "$name"
+    elif [ -x "/opt/homebrew/bin/$name" ]; then
+        echo "/opt/homebrew/bin/$name"
+    elif [ -x "/usr/local/bin/$name" ]; then
+        echo "/usr/local/bin/$name"
+    else
+        echo "$name"
+    fi
+}
 # Unison
-UNISON_BIN=$(which unison || echo "/opt/homebrew/bin/unison")
+UNISON_BIN="$(resolve_bin unison)"
 
 # Flags
 SKIP_POWER_CHECK=0

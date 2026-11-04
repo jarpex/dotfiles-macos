@@ -4,7 +4,20 @@
 # Normal Finder folder windows (Downloads, etc.) are moved to the first empty workspace.
 set -euo pipefail
 
-AEROSPACE="/opt/homebrew/bin/aerospace"
+resolve_bin() {
+    local name="$1"
+    if command -v "$name" >/dev/null 2>&1; then
+        command -v "$name"
+    elif [ -x "/opt/homebrew/bin/$name" ]; then
+        echo "/opt/homebrew/bin/$name"
+    elif [ -x "/usr/local/bin/$name" ]; then
+        echo "/usr/local/bin/$name"
+    else
+        echo "$name"
+    fi
+}
+
+AEROSPACE="$(resolve_bin aerospace)"
 wid="${AEROSPACE_WINDOW_ID:-${1:-}}"
 [ -z "$wid" ] && exit 0
 
