@@ -1,17 +1,53 @@
 #!/bin/bash
-# Move a Quick Look preview window back to its origin workspace.
-# Called via exec-and-forget from AeroSpace on-window-detected.
-# $AEROSPACE_WINDOW_ID and $AEROSPACE_WORKSPACE are set by AeroSpace.
+# Handle new Finder windows detected by AeroSpace.
+# Quick Look preview panels stay floating on the current workspace and are centered.
+# Normal Finder folder windows (Downloads, etc.) are moved to the first empty workspace.
+set -euo pipefail
 
-AEROSPACE=/opt/homebrew/bin/aerospace
-wid="$AEROSPACE_WINDOW_ID"
-origin="$AEROSPACE_WORKSPACE"
+AEROSPACE="/opt/homebrew/bin/aerospace"
+wid="${AEROSPACE_WINDOW_ID:-${1:-}}"
+[ -z "$wid" ] && exit 0
 
-sleep 0.5
+# Wait briefly for window title to appear
+title=""
+for _ in 1 2 3 4; do
+    title=$("$AEROSPACE" echo --window-id "$wid" -- '%{window-title}' 2>/dev/null || true)
+    [ -n "$title" ] && break
+    sleep 0.05
+done
 
-title=$($AEROSPACE list-windows --all --format "%{window-id} %{window-title}" 2>/dev/null | awk -v id="$wid" '$1 == id { $1=""; print substr($0,2) }')
-
+is_quicklook=false
 if [ "$title" = "Quick Look" ]; then
-    $AEROSPACE move-node-to-workspace --window-id "$wid" "$origin"
-    $AEROSPACE workspace "$origin"
+    is_quicklook=true
+elif [ -z "$title" ]; then
+    subrole=$(osascript -e 'tell application "System Events" to tell process "Finder" to get subrole of front window' 2>/dev/null || true)
+    if [ "$subrole" = "Quick Look" ] || { [ -n "$subrole" ] && [ "$subrole" != "AXStandardWindow" ]; }; then
+        is_quicklook=true
+    fi
+fi
+
+if [ "$is_quicklook" = true ]; then
+    "$AEROSPACE" layout floating --window-id "$wid"
+    osascript -e '
+tell application "Finder" to set deskBounds to bounds of window of desktop
+tell application "System Events" to tell process "Finder"
+    set deskW to item 3 of deskBounds
+    set deskH to item 4 of deskBounds
+    repeat with w in windows
+        if name of w is "Quick Look" then
+            set sz to size of w
+            set winW to item 1 of sz
+            set winH to item 2 of sz
+            set posX to (deskW - winW) div 2
+            set posY to (deskH - winH) div 2
+            set position of w to {posX, posY}
+            exit repeat
+        end if
+    end repeat
+end tell' >/dev/null 2>&1 || true
+else
+    first_empty=$("$AEROSPACE" list-workspaces --monitor focused --empty --format '%{workspace}' | head -1)
+    if [ -n "$first_empty" ]; then
+        "$AEROSPACE" move-node-to-workspace --focus-follows-window --window-id "$wid" "$first_empty"
+    fi
 fi

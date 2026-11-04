@@ -287,7 +287,6 @@ class ExitWatcher(object):
         return exited, changed
 
 
-
 class Tracker(object):
     """Tracks where windows came from, and which moves were automatic."""
 
@@ -311,7 +310,6 @@ class Tracker(object):
         # window id -> workspace the automatic move put it on
         self.move_location = {}
         self.focused_workspace = None
-        self._ql_last = 0.0
         # workspace -> (window id, origin workspace) for automatically moved
         # windows. This is the map that makes the bounce correction possible
         # without asking AeroSpace for its window list first: an empty
@@ -372,60 +370,7 @@ class Tracker(object):
                             self.move_location):
                 trim(mapping)
         log("detected window %s on workspace %s bundle=%s app=%s title=%s" % (window_id, workspace, bundle, app_name, window_title))
-        # Quick Look preview windows are Finder windows whose title is set
-        # after detection. Move them back to the origin workspace so they
-        # float on the current desk instead of being carried away.
-        if bundle == "com.apple.finder":
-            threading.Thread(target=self._quicklook_fix,
-                             args=(window_id, workspace), daemon=True).start()
         self._notify()
-
-    def _quicklook_fix(self, window_id, origin):
-        """Move a Quick Look preview window back to its origin workspace.
-
-        Quick Look previews are Finder windows whose title is not set at
-        detection time. Wait briefly, check the title, and if it is
-        'Quick Look', move the window back to the origin workspace.
-        """
-        log("quicklook fix: checking window %s (origin=%s)" % (window_id, origin))
-        # The title is not available at detection time. Retry a few times.
-        title = None
-        for attempt in range(10):
-            time.sleep(1.0)
-            try:
-                client = AeroSpaceClient()
-                out = client.command("list-windows", "--all",
-                                     "--format", "%{window-id} %{window-title}")
-                for line in out.splitlines():
-                    parts = line.split(None, 1)
-                    if len(parts) >= 1 and parts[0] == str(window_id):
-                        title = parts[1] if len(parts) > 1 else ""
-                        break
-                client.close()
-            except (SocketError, OSError, ValueError) as err:
-                log("quicklook fix failed for %s: %s" % (window_id, err))
-                return
-            log("quicklook fix: window %s title=%r (attempt %d)" % (window_id, title, attempt + 1))
-            if title == "Quick Look":
-                break
-            if title is None:
-                break  # window gone
-        if title != "Quick Look":
-            return
-        try:
-            client = AeroSpaceClient()
-            client.command("move-node-to-workspace", "--window-id",
-                           str(window_id), origin)
-            client.command("workspace", origin)
-            # Cancel auto-move tracking so no bounce happens on close.
-            with self.lock:
-                self.auto_moved[window_id] = False
-                self.auto_moved_to.pop(window_id, None)
-                self.pending_return.pop(window_id, None)
-            log("quicklook fix: moved window %s back to %s" % (window_id, origin))
-            client.close()
-        except (SocketError, OSError, ValueError) as err:
-            log("quicklook fix failed for %s: %s" % (window_id, err))
 
     def window_focused(self, window_id, workspace):
         """Records that a window gained focus, possibly on another desk."""
@@ -846,60 +791,6 @@ def subscriber_thread(tracker, wake):
                     commands.command("workspace", target)
                 elif kind == "focused-workspace-changed":
                     tracker.workspace_focused(event.get("workspace"))
-                    # Quick Look previews are Finder windows that steal focus
-                    # onto their own workspace. Switch back to the previous
-                    # workspace so the user stays where they were.
-                    new_workspace = event.get("workspace")
-                    prev_workspace = event.get("prevWorkspace")
-                    if new_workspace is not None and prev_workspace is not None and new_workspace != prev_workspace:
-                        # Guard against oscillation: skip if we just handled
-                        # a Quick Look switch.
-                        now = time.monotonic()
-                        if now - tracker._ql_last < 2.0:
-                            return
-                        try:
-                            focused = commands.command("list-windows", "--focused",
-                                                       "--format", "%{window-title}")
-                            if focused.strip() == "Quick Look":
-                                # Move any Quick Look window from the new
-                                # workspace to the previous one so the user
-                                # can see it, then restore focus.
-                                ql_windows = commands.command("list-windows", "--all",
-                                                             "--format", "%{window-id} %{window-title} %{workspace}")
-                                for line in ql_windows.splitlines():
-                                    sp = line.rsplit(" ", 1)
-                                    if len(sp) != 2:
-                                        continue
-                                    wid_title, ws = sp
-                                    if ws != new_workspace:
-                                        continue
-                                    wid_parts = wid_title.split(" ", 1)
-                                    wid = wid_parts[0]
-                                    title = wid_parts[1] if len(wid_parts) > 1 else ""
-                                    if title == "Quick Look":
-                                        commands.command("move-node-to-workspace", "--window-id", wid, prev_workspace)
-                                # Move any Quick Look window from the new
-                                # workspace to the previous one so the user
-                                # can see it.
-                                ql_windows = commands.command("list-windows", "--all",
-                                                             "--format", "%{window-id} %{window-title} %{workspace}")
-                                for line in ql_windows.splitlines():
-                                    sp = line.rsplit(" ", 1)
-                                    if len(sp) != 2:
-                                        continue
-                                    wid_title, ws = sp
-                                    if ws != new_workspace:
-                                        continue
-                                    wid_parts = wid_title.split(" ", 1)
-                                    wid = wid_parts[0]
-                                    title = wid_parts[1] if len(wid_parts) > 1 else ""
-                                    if title == "Quick Look":
-                                        commands.command("move-node-to-workspace", "--window-id", wid, prev_workspace)
-                                commands.command("workspace", prev_workspace)
-                                tracker._ql_last = now
-                                log("quicklook: switched back to %s" % prev_workspace)
-                        except SocketError:
-                            pass
                     # Stickies and com.jarpex.human are apps whose windows float
                     # on top of everything on every workspace. AeroSpace has no
                     # sticky window support, so move all their windows to the
