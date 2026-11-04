@@ -27,8 +27,7 @@ mkdir -p "$TARGET_DIR"
 
 if [[ -f "$TARGET" ]]; then
   if cmp -s "$TMPFILE" "$TARGET"; then
-    echo "No changes in $TARGET; leaving existing agent intact."
-    exit 0
+    echo "No changes in $TARGET; verifying agent status."
   else
     echo "Updating existing plist at $TARGET"
   fi
