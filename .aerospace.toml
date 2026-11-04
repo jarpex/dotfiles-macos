@@ -62,6 +62,8 @@ on-window-detected = [
     { if = 'test %{app-bundle-id} = com.apple.quicklook.QuickLookUIService', check-further-callbacks = false, run = 'layout floating' },
     { if = 'test %{app-bundle-id} = com.apple.quicklook.satellite', check-further-callbacks = false, run = 'layout floating' },
     { if = 'test %{app-name} ~= QuickLook', check-further-callbacks = false, run = 'layout floating' },
+    # Finder: float first so new windows do not tile, then classify via the helper
+    { if = 'test %{app-bundle-id} = com.apple.finder', run = 'layout floating' },
     { if = 'test %{app-bundle-id} = com.apple.finder', check-further-callbacks = false, run = 'exec-and-forget ~/.local/bin/aerospace-quicklook-fix' },
     # Catch-all: move unmatched windows to first empty persistent workspace on focused monitor
     { if = 'true', check-further-callbacks = false, run = "exec-and-forget bash -c 'first_empty=$(aerospace list-workspaces --monitor focused --empty --format \"%{workspace}\" | head -1); [ -n \"$first_empty\" ] && aerospace move-node-to-workspace --focus-follows-window --window-id \"$AEROSPACE_WINDOW_ID\" \"$first_empty\"'" },

@@ -79,5 +79,6 @@ else
     first_empty=$("$AEROSPACE" list-workspaces --monitor focused --empty --format '%{workspace}' | head -1)
     if [ -n "$first_empty" ]; then
         "$AEROSPACE" move-node-to-workspace --focus-follows-window --window-id "$wid" "$first_empty"
+        "$AEROSPACE" layout tiling --window-id "$wid"
     fi
 fi
