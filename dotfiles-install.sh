@@ -67,7 +67,9 @@ install_script() {
     mkdir -p "$(dirname "$target")"
 
     # If the target exists, back it up if different
-    if [ -e "$target" ] || [ -L "$target" ]; then
+    if [ -L "$target" ]; then
+        rm -f "$target"
+    elif [ -e "$target" ]; then
         if cmp -s "$source" "$target"; then
             echo "✔ Script already installed and identical: $target → $source"
             return 0
