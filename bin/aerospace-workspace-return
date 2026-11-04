@@ -277,7 +277,7 @@ class ExitWatcher(object):
         Returns the pids that exited, and whether the watch set changed.
         """
         try:
-            events = self._kq.control(None, 1, timeout)
+            events = self._kq.control(None, 32, timeout)
         except OSError:
             return [], False
         exited = []
@@ -716,7 +716,7 @@ def watcher_thread(tracker, stop):
             continue
 
         exited, changed = watcher.wait(WATCH_TIMEOUT)
-        if changed:
+        if changed and not exited:
             continue
         if not exited:
             # Nothing exited - but the process may have died between the
