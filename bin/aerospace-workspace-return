@@ -135,16 +135,17 @@ class AeroSpaceClient(object):
         sock.settimeout(10)
         try:
             sock.connect(socket_path())
-        except OSError as err:
+            sock.sendall(struct.pack("<I", SOCKET_PROTOCOL_VERSION))
+            version_data = self._recv_exact(sock, 4)
+            version = struct.unpack("<I", version_data)[0]
+            if version != SOCKET_PROTOCOL_VERSION:
+                raise SocketError("unsupported server protocol version %d" % version)
+            self._sock = sock
+        except Exception as err:
             sock.close()
+            if isinstance(err, SocketError):
+                raise
             raise SocketError("cannot connect to %s: %s" % (socket_path(), err))
-        # Handshake: both sides exchange a 4-byte protocol version.
-        sock.sendall(struct.pack("<I", SOCKET_PROTOCOL_VERSION))
-        version = struct.unpack("<I", self._recv_exact(sock, 4))[0]
-        if version != SOCKET_PROTOCOL_VERSION:
-            sock.close()
-            raise SocketError("unsupported server protocol version %d" % version)
-        self._sock = sock
 
     def close(self):
         if self._sock is not None:
