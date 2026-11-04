@@ -7,7 +7,7 @@ set -euo pipefail
 SOURCE="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents"
 DEST="/Volumes/Asya/20_Knowledge"
 # Lock
-LOCK_DIR="/tmp/sync_obsidian.lock"
+LOCK_FILE="/tmp/sync_obsidian_${UID}.lock"
 # Unison
 UNISON_BIN=$(which unison || echo "/opt/homebrew/bin/unison")
 
@@ -34,33 +34,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Acquire lock to prevent overlapping runs
-if mkdir "$LOCK_DIR" 2>/dev/null; then
-    echo $$ > "$LOCK_DIR/pid"
-    trap 'rm -rf "$LOCK_DIR"' INT TERM EXIT
-else
-    # Check for a stale lock left by a crashed/killed process
-    stale=0
-    if [ -f "$LOCK_DIR/pid" ]; then
-        old_pid=$(cat "$LOCK_DIR/pid" 2>/dev/null || true)
-        if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null; then
-            echo "Another instance is running. Exiting."
-            exit 0
-        fi
-        stale=1
-    else
-        stale=1
-    fi
-
-    if [ "$stale" -eq 1 ]; then
-        rm -rf "$LOCK_DIR"
-        if mkdir "$LOCK_DIR" 2>/dev/null; then
-            echo $$ > "$LOCK_DIR/pid"
-            trap 'rm -rf "$LOCK_DIR"' INT TERM EXIT
-        else
-            echo "Another instance is running. Exiting."
-            exit 0
-        fi
-    fi
+exec 200>"$LOCK_FILE"
+if ! perl -e 'use Fcntl qw(:flock); exit(flock(STDIN, LOCK_EX | LOCK_NB) ? 0 : 1)' <&200; then
+    echo "Another instance is running. Exiting."
+    exit 0
 fi
 
 if [[ ! -d "$SOURCE" ]]; then
@@ -104,7 +81,3 @@ else
     echo "Error: NAS is not mounted at $DEST"
     exit 1
 fi
-
-# Cleanup lock (trap will also remove it)
-rm -rf "$LOCK_DIR"
-trap - INT TERM EXIT
