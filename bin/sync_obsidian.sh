@@ -96,8 +96,8 @@ if [ -d "$DEST" ]; then
         -ignore "Name .Spotlight-V100" \
         -ignore "Name .*.swp" \
         -ignore "Name Icon?" \
-        -ignore "Path */.makemd" \
-        -ignore "Path */.space"
+        -ignore "Name .makemd" \
+        -ignore "Name .space"
     echo "------------------------------------"
     echo "Done!"
 else
