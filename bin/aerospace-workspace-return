@@ -336,6 +336,7 @@ class Tracker(object):
         # for certain the window died there.
         self.dead_auto_moves = {}
         self.pending_return = None
+        self.last_bounce = None
         self.on_change = None
 
     def _notify(self):
@@ -443,15 +444,17 @@ class Tracker(object):
                 if previous is not None and previous != workspace:
                     self._classify_move(window_id, previous, workspace, now)
                 self.location[window_id] = workspace
+                if window_id not in self.origin:
+                    self.origin[window_id] = workspace
                 if bundle is not None:
                     self.bundle[window_id] = bundle
                 if pid:
                     self.pid[window_id] = pid
 
-            for window_id in list(self.origin):
+            for window_id in list(self.location):
                 if window_id in live:
                     continue
-                origin = self.origin.pop(window_id)
+                origin = self.origin.pop(window_id, None)
                 location = self.location.pop(window_id, None)
                 self.detected_at.pop(window_id, None)
                 self.bundle.pop(window_id, None)
@@ -572,6 +575,8 @@ class Tracker(object):
                 self.pending_return = None
                 self.dead_auto_moves.pop(moved_to, None)
                 self.auto_moved_to.pop(moved_to, None)
+                now = time.monotonic()
+                self.last_bounce = (moved_to, now + 0.5)
                 return origin
             if focused_workspace == origin:
                 # Already home. Keep waiting in case AeroSpace bounces us back.
@@ -587,7 +592,18 @@ class Tracker(object):
     def is_bounce_pending_for(self, workspace):
         """Non-mutating check whether a workspace switch is an incoming bounce."""
         with self.lock:
-            return workspace in self.auto_moved_to
+            now = time.monotonic()
+            if self.last_bounce and self.last_bounce[0] == workspace and now <= self.last_bounce[1]:
+                return True
+            if workspace in self.dead_auto_moves:
+                origin, expiry = self.dead_auto_moves[workspace]
+                if now <= expiry:
+                    return True
+            if self.pending_return:
+                origin, moved_to, deadline, _ = self.pending_return
+                if workspace == moved_to and now <= deadline:
+                    return True
+            return False
 
     def bounce_target(self, workspace):
         """Called when focus lands on an empty workspace - the bounce.
@@ -626,6 +642,7 @@ class Tracker(object):
                 return None
             self.auto_moved_to.pop(workspace, None)
             self.pending_return = None
+            self.last_bounce = (workspace, now + 0.5)
             return origin
 
 
@@ -905,21 +922,28 @@ def reconcile_thread(tracker, wake, stop):
     in a loop is what used to burn its CPU.
     """
     commands = None
+    first_run = True
     while not stop.is_set():
-        # Wait for a new window or for the safety-net interval.
-        wake.wait(RECONCILE_INTERVAL)
-        if not wake.is_set():
-            pass
-        else:
-            # The auto-assign callback moves the window a moment after it
-            # appears, so wait for that before reading.
-            time.sleep(SETTLE_DELAY)
-        wake.clear()
+        if not first_run:
+            wake.wait(RECONCILE_INTERVAL)
+            if not wake.is_set():
+                pass
+            else:
+                time.sleep(SETTLE_DELAY)
+            wake.clear()
+        first_run = False
         if stop.is_set():
             return
         try:
             if commands is None:
                 commands = AeroSpaceClient()
+            if tracker.focused_workspace_now() is None:
+                try:
+                    cur = commands.command("list-workspaces", "--focused", "--format", "%{workspace}").strip()
+                    if cur:
+                        tracker.workspace_focused(cur)
+                except SocketError:
+                    pass
             live = parse_windows(commands.command(
                 "list-windows", "--all", "--format",
                 "%{window-id} %{app-bundle-id} %{app-pid} %{workspace}"))
@@ -931,6 +955,8 @@ def reconcile_thread(tracker, wake, stop):
                 if target:
                     log("switching to workspace %s (from %s)" % (target, focused))
                     commands.command("workspace", target)
+                else:
+                    sync_sticky_windows_from_tracker(tracker, commands, focused)
         except (SocketError, OSError) as err:
             log("reconcile failed: %s" % err)
             if commands is not None:

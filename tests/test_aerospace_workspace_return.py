@@ -355,6 +355,16 @@ awr.sync_sticky_windows_from_tracker(tracker28, mock_fallback, "2")
 fallback_moves = [cmd for cmd in mock_fallback.commands if cmd[0] == "move-node-to-workspace"]
 check("fallback moves both windows individually", len(fallback_moves) == 2)
 
+print("test 29: is_bounce_pending_for distinguishes live auto-moves from bounces")
+tracker29 = awr.Tracker()
+tracker29.window_detected(1001, "1")
+tracker29._record_auto_move(1001, "1", "2")
+check("live auto-moved window does not block workspace switches",
+      not tracker29.is_bounce_pending_for("2"))
+tracker29.dead_auto_moves["2"] = ("1", time.monotonic() + 1.0)
+check("dead auto-move marks workspace as pending bounce",
+      tracker29.is_bounce_pending_for("2"))
+
 print()
 if failures:
     print("%d FAILURE(S): %s" % (len(failures), ", ".join(failures)))
