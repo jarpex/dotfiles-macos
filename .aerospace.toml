@@ -57,6 +57,7 @@ on-window-detected = [
     # Floating apps that stay on the current workspace (Calculator, etc.)
     { if = 'test %{app-bundle-id} = com.apple.calculator', check-further-callbacks = false, run = 'layout floating' },
     { if = 'test %{app-bundle-id} = com.apple.systempreferences', check-further-callbacks = false, run = 'layout floating' },
+    { if = 'test %{app-bundle-id} = com.apple.Passwords', check-further-callbacks = false, run = 'layout floating' },
     { if = 'test %{app-bundle-id} = com.apple.Stickies', check-further-callbacks = false, run = 'layout floating' },
     { if = 'test %{app-bundle-id} = com.jarpex.human', check-further-callbacks = false, run = 'layout floating' },
     { if = 'test %{app-bundle-id} = com.apple.quicklook.QuickLookUIService', check-further-callbacks = false, run = 'layout floating' },
